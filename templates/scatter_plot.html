@@ -1,0 +1,486 @@
+<div id="text" class="text">
+
+<ul id="title">
+    {% for titles in title %}
+        <li id="test">{{ titles }}</li>
+    {% endfor %}
+</ul>
+
+<ul id="scatter">
+    {% for scatter_title in list_scatter %}
+        <li id="test">{{ scatter_title }}</li>
+    {% endfor %}
+</ul>
+
+<ul id="name">
+    {% for name in data %}
+        <li  >{{ name }}</li>
+    {% endfor %}
+</ul>
+
+</div>
+
+<div id="concent" style="overflow:auto"></div>
+
+<style>
+
+    svg {
+        font: 10px sans-serif;
+        padding: 0px;
+        display: block;
+        margin: auto;
+    }
+
+    .axis,
+    .frame {
+        shape-rendering: crispEdges;
+    }
+
+    .axis line {
+        stroke: #ddd;
+    }
+
+    .axis path {
+        display: none;
+    }
+
+    .frame {
+        fill: none;
+        stroke: #aaa;
+    }
+
+    circle {
+        fill-opacity: .7;
+    }
+
+    circle.hidden {
+        fill: #ccc !important;
+    }
+
+    .extent {
+        fill: #000;
+        fill-opacity: .125;
+        stroke: #fff;
+    }
+
+    .bar {
+        fill: #777;
+    }
+
+
+    div#d3container{
+        margin: 0;
+        border: 0;
+        padding: 0;
+    }
+
+    body {
+        overflow-x: hidden;
+        font-family: "Lato", "Open Sans", sans-serif;
+        font-size: 14px;
+        line-height: 1.75;
+        font-weight: 300;
+    }
+
+    .text-muted {
+        color: #777777;
+    }
+
+    .text-primary {
+        color: #1cbd72;
+    }
+
+    p {
+        font-size: 14px;
+        line-height: 1.75;
+        font-weight: 300;
+    }
+
+    h1,
+    h2,
+    h3 {
+        font-family: "Lato", Helvetica, Arial, sans-serif;
+        text-transform: none;
+        font-weight: 700;
+        margin-bottom: 0 ;
+    }
+</style>
+
+<body>
+
+<link href='http://fonts.googleapis.com/css?family=Lato:100,300,400,700' rel='stylesheet' type='text/css'>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.min.js"></script>
+
+<script>
+    var arrs = document.getElementById("title").getElementsByTagName('li'),temp = [];
+
+    for(var i = 0;i<arrs.length;i++){
+        temp.push(arrs[i].innerHTML)
+    }
+
+    var arr_scatter = document.getElementById("scatter").getElementsByTagName('li'),scatter_title = [];
+
+    for(var i = 0;i<arr_scatter.length;i++){
+        scatter_title.push(arr_scatter[i].innerHTML)
+    }
+
+    var arr = document.getElementById("name").getElementsByTagName('li'),data = [];
+
+    for(var i = 0;i<arr.length;i++){
+        arr_str=arr[i].innerHTML;
+        var obj = eval('(' + arr_str + ')');
+        data.push(obj)
+    }
+
+    body = d3.select('body');
+    body.selectAll('.text').remove();
+
+    var width = 960,
+        size = 150,
+        padding = 19.5;
+
+    var x = d3.scale.linear()
+        .range([padding / 2, size - padding / 2]);
+
+    var y = d3.scale.linear()
+        .range([size - padding / 2, padding / 2]);
+
+    var histX = d3.scale.linear()
+        .range([padding / 2, size - padding / 2]);
+
+    var histY = d3.scale.linear()
+        .range([size - padding / 2, padding / 2]);
+
+    var formatSiPrefix = d3.format("3,.1s") ;
+
+    var xAxis = d3.svg.axis()
+        .scale(x)
+        .orient("bottom")
+        .ticks(5)
+        .tickFormat(formatSiPrefix);
+
+    var yAxis = d3.svg.axis()
+        .scale(y)
+        .orient("left")
+        .ticks(5)
+        .tickFormat(formatSiPrefix);
+
+    var color = d3.scale.category20();
+    d3Colors = d3.scale.category20()
+        .domain(d3.range(1,21)) ;
+    title_obj=scatter_title[0]
+    var title_biject = eval('(' + title_obj + ')');
+    diagonalNames = title_biject;
+
+    var filterType = ["none","none"] ;
+    var filterLimits = [[0,0],[0,0]] ;
+
+//----------------------------------------
+// Load and plot the data
+//----------------------------------------
+
+  // Determine the types of each plot by extracting the first line of the csv and ignoring
+  //  "species"
+
+    var domainByTrait = {},
+        traits = d3.keys(data[0]).filter(function(d) {return (d);}),
+        n = traits.length;
+
+    traits.forEach(function(trait) {
+        domainByTrait[trait] = d3.extent(data, function(d) {
+            return +d[trait];
+        });
+    });
+
+  // Set the ticks to stretch across all plots
+    xAxis.tickSize(size * n);
+    yAxis.tickSize(-size * n);  // negative so ticks go right
+
+  // Create brushing variable
+    var brush = d3.svg.brush()
+        .x(x)
+        .y(y)
+        .on("brushstart", brushstart)
+        .on("brush", brushmove)
+        .on("brushend", brushend);
+
+  // Create the svg box
+    var svg = d3.select("#concent").append("svg")
+        .attr("width", size * n + padding*5)
+        .attr("height", size * n + padding)
+        .append("g")
+        .attr("transform", "translate(" + padding*4 + "," + padding / 2 + ")");
+
+  //------------------------------------
+  // Create Legend
+  //------------------------------------
+
+  // Create each x-axis
+    svg.selectAll(".x.axis")
+        .data(traits)
+        .enter().append("g")
+        .attr("class", "x axis")
+        .attr("transform", function(d, i) { return "translate(" + (n - i - 1) * size + ",0)"; })
+        .each(function(d) {
+            x.domain(domainByTrait[d]);
+            d3.select(this).call(xAxis);
+        });
+
+  // Create each y-axis
+    svg.selectAll(".y.axis")
+        .data(traits)
+        .enter().append("g")
+        .attr("class", "y axis")
+        .attr("transform", function(d, i) {
+            return "translate(0," + i * size + ")";
+        })
+        .each(function(d) {
+            y.domain(domainByTrait[d]);
+            d3.select(this).call(yAxis);
+        });
+
+    var cell = svg.selectAll(".cell")
+        .data(cross(traits, traits))
+        .enter().append("g")
+        .attr("class", "cell") ;
+
+    plotCells = cell.filter(function(d) { return d.i !== d.j; })
+        .attr("transform", function(d) { return "translate(" + (n - d.i - 1) * size + "," + d.j * size + ")"; })
+        .each(plot);
+
+    var histCells = cell.filter(function(d) { return d.i === d.j; })
+        .attr("transform", function(d) { return "translate(" + (n - d.i - 1) * size + "," + d.j * size + ")"; })
+        .each(firstPlotHistogram) ;
+
+  // Run the brush
+    plotCells.call(brush);
+
+  //------------------------------------------
+  // Plot Scatterplot Point
+  //------------------------------------------
+    function plot(p) {
+        var cell = d3.select(this);
+
+        histX.domain(domainByTrait[p.x]);
+        histY.domain(domainByTrait[p.y]);
+
+        cell.append("rect")
+            .attr("class", "frame")
+            .attr("x", padding / 2)
+            .attr("y", padding / 2)
+            .attr("width", size - padding)
+            .attr("height", size - padding);
+
+        cell.selectAll("circle.data")
+            .data(data)
+            .enter().append("circle")
+            .classed("data",true)
+            .attr("cx", function(d) {
+          // For each data point, return the appropriate x and
+          //  y value corresponding to the pair of data, and scale it
+                return histX(d[p.x]);
+            })
+            .attr("cy", function(d) { return histY(d[p.y]); })
+            .attr("r", 2)
+            .style("fill", function(d) {
+                return d3Colors(5);               // 散点颜色
+            });
+    }
+
+  //------------------------------------------
+  // Update Histogram
+  //------------------------------------------
+    function updateHistograms() {
+        d3.selectAll(".histogram")
+            .remove() ;
+
+        histCells.each(function(p) {
+
+            var cell = d3.select(this);
+
+            histX.domain(domainByTrait[p.x]);
+      //y.domain(domainByTrait[p.y]);
+
+      // Filter data down based on selections
+            var histData = data.filter(function(d) {
+
+                if (filterLimits[0][0] > +d[filterType[0]] || +d[filterType[0]] > filterLimits[0][1] ||
+                    filterLimits[1][0] > +d[filterType[1]] || +d[filterType[1]] > filterLimits[1][1]) {
+                    return false ;
+                }
+                return true ;
+            }) ;
+
+      // Extract data for histogramming into single array
+            histData = histData.map(function(d) {
+                return +d[p.x] ;
+            });
+
+      // Generate a histogram using twenty uniformly-spaced bins.
+            var hist = d3.layout.histogram()
+                .bins(histX.ticks(20))
+                (histData);
+
+            var histScale = d3.scale.linear()
+                .domain([0, d3.max(hist, function(d) { return d.y; })])
+                .range([size - padding / 2, padding / 2]);
+
+            var bar = cell.selectAll(".bar")
+                .data(hist)
+                .enter().append("g")
+                .attr("class", "bar")
+                .classed("histogram",true)
+                .attr("transform", function(d) {
+                    return "translate(" + histX(d.x) + "," + histScale(d.y) + ")";
+                });
+
+            bar.append("rect")
+                .classed("histogram",true)
+                .attr("x", 1)
+                .attr("width", 5) //x(hist[0].dx) )
+                .attr("height", function(d) {
+                    return size - padding / 2 - histScale(d.y);
+                });
+
+      // Titles for the diagonal.
+      //cell.filter(function(d) { return d.i === d.j; }).
+            cell.append("text")
+                .classed("histogram",true)
+                .attr("x", size - padding)
+                .attr("y", padding)
+                .attr("dy", ".71em")
+                .attr("text-anchor","end")
+                .text(function(d) { return diagonalNames[d.x]; });
+        }) ;
+    }
+
+  //------------------------------------------
+  // First Plot Histogram
+  //------------------------------------------
+    function firstPlotHistogram(p) {
+
+        var cell = d3.select(this);
+
+        histX.domain(domainByTrait[p.x]);
+
+        histY.domain(domainByTrait[p.y]);
+
+        cell.append("rect")
+            .attr("x", padding / 2)
+             .attr("y", padding / 2)
+             .attr("width", size - padding)
+            .attr("height", size - padding)
+             .attr("fill", "white")
+             .attr("stroke","#aaa");
+
+    // Extract data for histogramming into single array
+        histData = data.map(function(d) {
+            return +d[p.x] ;
+        });
+
+    // Generate a histogram using twenty uniformly-spaced bins.
+        var hist = d3.layout.histogram()
+            .bins(histX.ticks(20))
+            (histData);
+
+        var histScale = d3.scale.linear()
+            .domain([0, d3.max(hist, function(d) { return d.y; })])
+            .range([size - padding / 2, padding / 2]);
+
+        var bar = cell.selectAll(".bar")
+            .data(hist)
+            .enter().append("g")
+            .attr("class", "bar")
+            .classed("histogram",true)
+            .attr("transform", function(d) {
+                return "translate(" + histX(d.x) + "," + histScale(d.y) + ")";
+            });
+
+        bar.append("rect")
+            .classed("histogram",true)
+            .attr("x", 1)
+            .attr("width", 5) //x(hist[0].dx) )
+            .attr("height", function(d) {
+                return size - padding / 2 - histScale(d.y);
+            });
+
+    // Titles for the diagonal.
+    //cell.filter(function(d) { return d.i === d.j; }).
+        cell.append("text")
+            .classed("histogram",true)
+            .attr("x", size - padding)
+            .attr("y", padding)
+            .attr("dy", ".71em")
+            .attr("text-anchor","end")
+            .text(function(d) { return diagonalNames[d.x]; });
+    }
+
+    var brushCell;
+
+  //------------------------------------------
+  // Brushstart
+  //------------------------------------------
+  // Clear the previously-active brush, if any.
+    function brushstart(p) {
+        if (brushCell !== this) {
+            d3.select(brushCell).call(brush.clear());
+            x.domain(domainByTrait[p.x]);
+            y.domain(domainByTrait[p.y]);
+            brushCell = this;
+            console.log("clear");
+        }
+
+    // Reset histogram parameters
+    //filterType = ["none","none"] ;
+    //filterLimits = [[0,0],[0,0]] ;
+    //updateHistograms() ;
+    //console.log("start");
+    }
+
+  //------------------------------------------
+  // Brushmove
+  //------------------------------------------
+  // Highlight the selected circles.
+    function brushmove(p) {
+        var e = brush.extent();
+
+    // Identify subselections for histograms
+        filterType = [p.x,p.y] ;
+        filterLimits = [ [+e[0][0],+e[1][0]], [+e[0][1],+e[1][1]]] ;
+        if (filterLimits[0][0] == filterLimits[0][1] && filterLimits[1][0] == filterLimits[1][1]) {
+            filterType = ["none","none"] ;
+            updateHistograms() ;
+        }
+
+        svg.selectAll("circle.data").classed("hidden", function(d) {
+            return +e[0][0] > +d[p.x] || +d[p.x] > +e[1][0] ||
+                +e[0][1] > +d[p.y] || +d[p.y] > +e[1][1];
+
+        });
+        updateHistograms() ;
+    }
+
+  //------------------------------------------
+  // Brushend
+  //------------------------------------------
+  // If the brush is empty, select all circles.
+    function brushend() {
+        if (brush.empty()) svg.selectAll(".hidden").classed("hidden", false);
+        updateHistograms() ;
+    }
+
+  //------------------------------------------
+  // Cross
+  //------------------------------------------
+    function cross(a, b) {
+        var c = [], n = a.length, m = b.length, i, j;
+        for (i = -1; ++i < n;)
+            for (j = -1; ++j < m;)
+                c.push({x: a[i], i: i, y: b[j], j: j});
+        return c;
+    }
+
+    d3.select(self.frameElement).style("height", size * n + padding + 20 + "px");
+
+</script>
