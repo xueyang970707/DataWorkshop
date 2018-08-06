@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>HDA</title>
+
+    <link href="../static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../static/vendor/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="../static/vendor/datatables/dataTables.bootstrap4.css" rel="stylesheet">
+    <link href="../static/css/sb-admin.css" rel="stylesheet">
+
+</head>
+
+<body class="fixed-nav sticky-footer bg-dark" id="page-top">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" id="mainNav">
+
+    <a class="navbar-brand" href="/index">Data Workshop</a>
+
+    <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarResponsive">
+
+        <ul class="navbar-nav navbar-sidenav" id="exampleAccordion">
+
+            <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Dashboard">
+                <a class="nav-link" href="/upload">
+                    <span class="nav-link-text">Main</span>
+                </a>
+            </li>
+
+            <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Charts">
+                <a class="nav-link" href="/statistics">
+                    <span class="nav-link-text">Statistics</span>
+                </a>
+            </li>
+
+            <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Tables">
+                <a class="nav-link" href="/projection">
+                    <span class="nav-link-text">Projection</span>
+                </a>
+            </li>
+
+            <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Tables">
+                <a class="nav-link" href="/cluster">
+                    <span class="nav-link-text">Cluster</span>
+                </a>
+            </li>
+
+            <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Tables">
+                <a class="nav-link" href="/visualization">
+                    <span class="nav-link-text">Visualization</span>
+                </a>
+            </li>
+
+        </ul>
+
+    </div>
+
+</nav>
+<div class="content-wrapper">
+
+    <div class="container-fluid">
+
+        <footer class="sticky-footer">
+            <div class="container">
+                <div class="text-center">
+                    <small>HDA</small>
+                </div>
+            </div>
+        </footer>
+
+        <script src="../static/vendor/jquery/jquery.min.js"></script>
+        <script src="../static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    </div>
+
+    <div id="upload">
+        <input type="file" name="csvfile"/>
+        <input type="button" onclick="csv2()" value="submit">
+    </div>
+
+    <br>
+
+    <form class="bs-example bs-example-form" role="form" action="">
+            <div id="stt" class="input-group input-group-lg">
+                <input type="button"  class="btn btn-default" onclick="showAtRight('/upload/clean','#statistics')" value="Clean">
+                <input class="btn btn-default" type="submit" value="&#9999">
+            </div>
+    </form>
+    <br>
+    <form class="bs-example bs-example-form" role="form" action="/statistics">
+        <div id="stt" class="input-group input-group-lg">
+            <input type="button"  class="btn btn-default" onclick="showAtRight('/upload/statistics','#statistics')" value="Statistics">
+            <input class="btn btn-default" type="submit" value="&#9999">
+        </div>
+    </form>
+    <br>
+    <form class="bs-example bs-example-form" role="form" action="/cluster">
+        <div id="stt" class="input-group input-group-lg">
+            <input class="btn btn-default" type="button" onclick="showAtRight('/upload/clusters','#statistics')" value="Cluster">
+            <input class="btn btn-default" type="submit" value="&#9999">
+        </div>
+    </form>
+    <br>
+    <form class="bs-example bs-example-form" role="form" action="/projection">
+        <div id="stt" class="input-group input-group-lg">
+            <input class="btn btn-default" type="button" onclick="showAtRight('/upload/projection','#statistics')" value="Projection">
+            <input class="btn btn-default" type="submit" value="&#9999">
+        </div>
+    </form>
+    <br>
+    <form class="bs-example bs-example-form" role="form" action="/visualization">
+        <div id="stt" class="input-group input-group-lg">
+            <input class="btn btn-default" type="button" onclick="showAtRight('/upload/visualization','#statistics')" value="Visualization">
+            <input class="btn btn-default" type="submit" value="&#9999">
+        </div>
+    </form>
+
+    <br>
+    <div id="statistics"></div>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="https://cdn.bootcss.com/PapaParse/4.4.0/papaparse.js"></script>
+    <script src=" https://cdnjs.cloudflare.com/ajax/libs/jschardet/1.4.1/jschardet.min.js"></script>
+    <script type="text/javascript" src="http://echarts.baidu.com/gallery/vendors/echarts/echarts.min.js"></script>
+    <script>
+        $.fn.csv2arr = function( callback ){
+            if( typeof(FileReader) == 'undefined' ){    //if not H5
+                alert("Your browser is too old,please use Chrome or Firefox");
+                return false;
+            }
+            if( ! $(this)[0].files[0]){
+                alert("Please select a file");
+                return false;
+            }
+            var fReader = new FileReader();
+            fReader.readAsDataURL( $(this)[0].files[0] );
+            $fileDOM = $(this);
+            fReader.onload = function(evt){
+                var data = evt.target.result;
+                var encoding = checkEncoding( data );
+                Papa.parse( $($fileDOM)[0].files[0], {
+                    encoding: encoding,
+                    complete: function(results) {
+                        var res = results.data;
+                        $.ajax({
+                            url: '/upload',
+                            type: 'POST',
+                            data: {d: JSON.stringify(res)},
+                            dataType: 'json',
+                            success:
+                                alert('success !')
+                        });
+                        if( res[ res.length-1 ] == ""){
+                            res.pop();
+                        }
+                        callback && callback( res );
+                    }
+                });
+            };
+            fReader.onerror = function(evt){
+                alert("The file has changed,please select again.(Firefox)");
+            };
+
+            function checkEncoding( base64Str ){
+                var str = atob( base64Str.split(";base64,")[1] );
+                var encoding = jschardet.detect( str );
+                encoding = encoding.encoding;
+                console.log( encoding );
+                if( encoding == "windows-1252"){
+                    encoding = "ANSI";
+                }
+                return encoding;
+            }
+        };
+        function csv2(){
+            $("input[name=csvfile]").csv2arr(function(res){
+            });
+        }
+        function showAtRight(url, id){
+            $.ajax({
+                type :"GET",
+                url : url,
+                dataType:"html",
+                success : function(data) {//返回数据根据结果进行相应的处理
+                    $(id).html(data);
+                },
+                error:function(){
+                    $(id).html("获取数据失败！");
+                }
+            });
+        }
+    </script>
+
+</div>
+
+</body>
+
+</html>

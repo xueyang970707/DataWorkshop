@@ -1,0 +1,52 @@
+<div id="content" style="overflow: auto">
+
+        <table class="table table-bordered" align="center">
+        <thead>
+            <tr>
+                <th>Statistics</th>
+                {% for feature in frame %}
+                <th>{{ feature }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Mean</td>
+                {% for m in mean %}
+                    <td>{{ m }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td>Median</td>
+                {% for m in median %}
+                    <td>{{ m }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td>Mode</td>
+                {% for m in mode %}
+                    <td>{{ m }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td>Minimum</td>
+                {% for m in min %}
+                    <td>{{ m }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td>Maximum</td>
+                {% for m in max %}
+                    <td>{{ m }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td>Variance</td>
+                {% for m in var %}
+                    <td>{{ m }}</td>
+                {% endfor %}
+            </tr>
+        </tbody>
+        </table >
+
+    </div>
