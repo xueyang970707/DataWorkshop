@@ -30,7 +30,7 @@
     }
 </style>
 
-<div class="pca"></div>
+<div class="lda"></div>
 
 <script type="text/javascript">
         var arr = document.getElementById("data_lda_obj").getElementsByTagName('li'),lda_rows = [];
@@ -110,8 +110,8 @@
             .style('fill','red')
             .attr('r',4);
 
-        svg.selectAll('.pca_circles')
-            .data(pca_rows)
+        svg.selectAll('.lda_circles')
+            .data(lda_rows)
             .on("mouseover", function(d,i) {
                 key_name=new Array();
                 for(var key in d){
@@ -131,21 +131,21 @@
             });
 
         function brushstart() {
-            svg.selectAll('.pca_circles')
-                .data(pca_dataset)
+            svg.selectAll('.lda_circles')
+                .data(lda_dataset)
                 .style("fill", function (d) {
                 return 'red';
             })
         }
 
         function brushed() {
-            var extend = brush.extent();
+            var extend = lda_brush.extent();
             var xmin = extend[0][0];
             var xmax = extend[1][0];
             var ymin = extend[0][1];
             var ymax = extend[1][1];
 
-            svg.selectAll('.pca_circles').style("fill", function (d) {
+            svg.selectAll('.lda_circles').style("fill", function (d) {
                 if(d[0] >= xmin && d[0] <= xmax && d[1] >= ymin && d[1] <= ymax){
                     return 'red';
             }
@@ -156,7 +156,7 @@
         }
 
         function brushend() {
-            svg.selectAll('.pca_circles')
-                .data(pca_rows);
+            svg.selectAll('.lda_circles')
+                .data(lda_rows);
         }
     </script>
