@@ -12,13 +12,6 @@
     <link href="../static/vendor/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
     <link href="../static/vendor/datatables/dataTables.bootstrap4.css" rel="stylesheet">
     <link href="../static/css/sb-admin.css" rel="stylesheet">
-    <script src="../static/vendor/jquery/jquery.min.js"></script>
-    <script src="../static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
-    <script src=" https://cdnjs.cloudflare.com/ajax/libs/jschardet/1.4.1/jschardet.min.js"></script>
-    <script src="http://d3js.org/d3.v3.min.js"></script>
-    <script type="text/javascript" src="http://www.xdocin.com/xdoc.js"></script>
-    <script type="text/javascript" src="http://www.xdocin.com/baiduTemplate.js"></script>
 </head>
 
 <style>
@@ -38,19 +31,6 @@
     .frame {
         fill: none;
         stroke: black;
-    }
-    #analysis_report{
-        overflow: auto;
-        text-align: center;
-        border: 1px solid #0c5460;
-        margin: 100px;
-    }
-    .head{
-        font-size: 29px;
-        display: block;
-    }
-    .content{
-        display: block;
     }
 </style>
 
@@ -179,10 +159,10 @@
             <div class="input-group-lg input-group-lg">
                 <input class="btn btn-default" type="submit" value="SpectralClustering"> &nbsp&nbsp&nbsp&nbsp&nbsp n_clusters：
                 <input class="cc " type="text" name="s_clusters" value="{{s_clusters}}" size="20">
+
             </div>
         </form>
-    </div>
-    <div>
+
     </div>
     <div class="container-fluid">
         <footer class="sticky-footer">
@@ -191,10 +171,9 @@
             </div>
         </footer>
     </div>
-    <div class="KMeans"></div>
-    <div class="Birch"></div>
+    <div class={{ method }}></div>
     <div id="getdata">
-        <ul id="kmeans_data">
+        <ul id="name">
             {% for name in data %}
                 <li>{{ name }}</li>
             {% endfor %}
@@ -214,13 +193,16 @@
             <li>{{ method }}</li>
         </ul>
     </div>
-    <button onclick="generate_anlaysis_report()">Generate Your Report</button>
-    <button onclick="download_anlysis_report()">Download Your Report</button>
     <div id="report" style="overflow: auto">
 
     </div>
 </div>
 
+<script src="../static/vendor/jquery/jquery.min.js"></script>
+<script src="../static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+<script src=" https://cdnjs.cloudflare.com/ajax/libs/jschardet/1.4.1/jschardet.min.js"></script>
+<script src="http://d3js.org/d3.v3.min.js"></script>
 <script type="text/javascript">
 
     colors = ["purple", "maroon", "navy", "aqua", "lime", "sliver", "red", "yellow", "blue", "darkslategray"];
@@ -237,7 +219,7 @@
     }
 
     dataset=new Array()
-    var arr = document.getElementById("kmeans_data").getElementsByTagName('li'),temp = [];
+    var arr = document.getElementById("name").getElementsByTagName('li'),temp = [];
     for(var i = 0;i<arr.length;i++){
         temp.push(arr[i].innerHTML);
     }
@@ -299,12 +281,6 @@
             return d[1];
         })]).range([2, 4]);
 
-    svg.append('rect')
-        .classed("frame", true)
-        .attr("x", padding/2)
-        .attr("y", padding/2)
-        .attr("width", svgWidth-padding)
-        .attr("height", svgHight-padding);
 
     var  brush = d3.svg.brush()
         .x(xScale)
@@ -355,8 +331,8 @@
         svg.selectAll('circle')
             .data(dataset);
         if(brushcell !== this){
-            d3.select(brushcell).call(brush.clear());
-            brushcell = this;
+            d3.select(brushCell).call(brush.clear());
+            brushCell = this;
         }
     }
 
@@ -379,39 +355,6 @@
           .data(rows);
   }
 
-  function generate_anlaysis_report() {
-      if(d3.select("#anlysis_report")){
-          d3.selectAll("#anlysis_report").remove();
-      }
-      analy_re = d3.select("#report").append("div")
-            .attr("id", "analysis_report");
-      for(i = 0; i < clusters; i++){
-            analy_re.append("p").text(indexes[i]);
-        }
-  }
-
-  function download_anlysis_report() {
-      var type="docx";
-      var data = {
-          title: "cluster && projection report",
-          content: ""
-      };
-      XDoc.to(baidu.template('tmpl', data), type, {});
-  }
-  
-</script>
-
-<script id="tmpl" type="text/html">
-    <xdoc version="A.3.0">
-        <body>
-            <para heading="1" lineSpacing="28">
-                <text class="head" valign="center" fontName="标宋" fontSize="29"><%=title%></text>
-            </para>
-            <para lineSpacing="9">
-                <text class="content" fontName="仿宋" fontSize="18"><%=content%></text>
-            </para>
-        </body>
-    </xdoc>
 </script>
 
 </body>

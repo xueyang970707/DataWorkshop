@@ -61,33 +61,22 @@
   </nav>
 
 <div class="content-wrapper">
-
     <div>
-        <input class="btn btn-default" type="submit" onclick="showAtRight('/projection/pca', '#pca')" value="Principal Component Analysis (PCA)">
-        <input class="btn btn-default" type="submit" onclick="showAtRight('/projection/mds', '#mds')" value="Multidimensional Scaling (MDS)">
-        <input class="btn btn-default" type="submit" onclick="showAtRight('/projection/isomap', '#isomap')" value="ISOMAP">
-        <input class="btn btn-default" type="submit" onclick="showAtRight('/projection/lle', '#lle')" value="Local Linear Embedding (LLE)">
-        <input class="btn btn-default" type="submit" onclick="showAtRight('/projection/tsne','#tsne')" value="t-distributed stochastic neighbor embedding(tSNE)">
-        <input class="btn btn-default" type="submit" onclick="showAtRight('/projection/lda', '#lda')" value="Linear discriminant analysis (LDA)">
+        <input class="btn btn-default" type="submit" onclick="showAtRight('/projection/pca', '#draw')" value="Principal Component Analysis (PCA)">
+        <input class="btn btn-default" type="submit" onclick="showAtRight('/projection/mds', '#draw')" value="Multidimensional Scaling (MDS)">
+        <input class="btn btn-default" type="submit" onclick="showAtRight('/projection/isomap', '#draw')" value="ISOMAP">
+        <input class="btn btn-default" type="submit" onclick="showAtRight('/projection/lle', '#draw')" value="Local Linear Embedding (LLE)">
+        <input class="btn btn-default" type="submit" onclick="showAtRight('/projection/tsne','#draw')" value="t-distributed stochastic neighbor embedding(tSNE)">
+        <input class="btn btn-default" type="submit" onclick="showAtRight('/projection/lda', '#draw')" value="Linear discriminant analysis (LDA)">
         <br><br>
-        <input class="btn btn-default" type="submit" onclick="showAtRight('/projection/lle', '#lle')" value="Generalized discriminant analysis (GDA)">
-        <input class="btn btn-default" type="submit" onclick="showAtRight('/projection/lle', '#lle')" value="Autoencoder">
+        <input class="btn btn-default" type="submit" onclick="showAtRight('/projection/lle', '#draw')" value="Generalized discriminant analysis (GDA)">
+        <input class="btn btn-default" type="submit" onclick="showAtRight('/projection/lle', '#draw')" value="Autoencoder">
     </div>
 
-    <div id="pca"></div>
-    <div id="mds"></div>
-    <div id="isomap"></div>
-    <div id="lle"></div>
-    <div id="tsne"></div>
-    <div id="lda"></div>
-    <div id=""></div>
-    <div id=""></div>
-    <div id=""></div>
-    <div id=""></div>
-    <div id=""></div>
+    <div id="draw"></div>
+    <br>
 
     <div class="container-fluid">
-
         <footer class="sticky-footer">
             <div class="container">
                 <div class="text-center">
@@ -95,32 +84,42 @@
                 </div>
             </div>
         </footer>
-
-        <script src="../static/vendor/jquery/jquery.min.js"></script>
-        <script src="../static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-        <script src="http://d3js.org/d3.v3.min.js"></script>
-
     </div>
-
-    <script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
-    <script src=" https://cdnjs.cloudflare.com/ajax/libs/jschardet/1.4.1/jschardet.min.js"></script>
-    <script>
-        function showAtRight(url, id){
-            $.ajax({
-                type :"GET",
-                url : url,
-                dataType:"html",
-                success : function(data) {//返回数据根据结果进行相应的处理
-                    $(id).html(data);
-                },
-                error:function(){
-                    $(id).html("获取数据失败！");
-                }
-            });
-        }
-    </script>
-
 </div>
+
+<script src="../static/vendor/jquery/jquery.min.js"></script>
+<script src="../static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+<script src=" https://cdnjs.cloudflare.com/ajax/libs/jschardet/1.4.1/jschardet.min.js"></script>
+<script>
+    var svgWidth = 1000;
+    var svgHight = 4000;
+    var padding = 20;
+    width = 400;
+    height = 300;
+    svg = d3.select(".content-wrapper").append("svg")
+        .attr("width", svgWidth)
+        .attr("height", svgHight)
+        .append("g")
+        .attr("transfrom", "translate（" + padding + "," + padding + ")");
+</script>
+<script>
+    function showAtRight(url, id){
+        $.ajax({
+            type :"GET",
+            url : url,
+            dataType:"html",
+            success : function(data) {//返回数据根据结果进行相应的处理
+                $(id).html(data);
+            },
+            error:function(){
+                $(id).html("获取数据失败！");
+            }
+        });
+    }
+</script>
+
 </body>
 
 </html>
