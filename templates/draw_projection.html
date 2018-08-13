@@ -31,6 +31,13 @@
             border-style: solid;
             border-width: 1px;
         }
+        circle.hidden {
+        fill: #ccc !important;
+    }
+    .frame {
+        fill: none;
+        stroke: black;
+    }
     </style>
 
     <div class={{ method }}></div>
@@ -87,6 +94,13 @@
                 return d[1];
             })]).range([2, 4]);
 
+        svg.append('rect')
+        .classed("frame", true)
+        .attr("x", padding/2)
+        .attr("y", padding/2)
+        .attr("width", svgWidth-padding)
+        .attr("height", svgHight-padding);
+
         var brush = d3.svg.brush()
             .x(xScale)
             .y(yScale)
@@ -105,7 +119,6 @@
             .data(dataset)
             .enter()
             .append('circle')
-            .classed(class_circles, true)
             .attr('cx', function(d) {
                 return xScale(d[0]);
             })
@@ -116,7 +129,7 @@
             .style('fill','red')
             .attr('r',4);
 
-        svg.selectAll('.' + class_circles)
+        svg.selectAll('circle')
             .data(rows)
             .on("mouseover", function(d,i) {
                 key_name=new Array();
@@ -136,12 +149,14 @@
                 d3.select("#Ttitle").remove();
             });
 
+        var brushcell;
         function brushstart() {
-            svg.selectAll('.' + class_circles)
-                .data(dataset)
-                .style("fill", function (d) {
-                return 'red';
-            })
+            if(brushcell !== this){
+            d3.select(brushcell).call(brush.clear());
+            brushcell = this;
+            }
+            svg.selectAll('circle')
+                .data(dataset);
         }
 
         function brushed() {
@@ -151,18 +166,15 @@
             var ymin = extend[0][1];
             var ymax = extend[1][1];
 
-            svg.selectAll('.' + class_circles).style("fill", function (d) {
-                if(d[0] >= xmin && d[0] <= xmax && d[1] >= ymin && d[1] <= ymax){
-                    return 'red';
-            }
-                else{
-                    return "grey";
-                }
+            svg.selectAll("circle")
+            .classed("hidden", function (d) {
+                return d[0] < xmin || d[0] > xmax || d[1] < ymin || d[1] > ymax
             })
         }
 
         function brushend() {
-            svg.selectAll('.' + class_circles)
+            if (brush.empty()) svg.selectAll(".hidden").classed("hidden", false);
+            svg.selectAll("circle")
                 .data(rows);
         }
     </script>

@@ -1,162 +1,148 @@
 
 <div id="text" class="text">
-    <ul id ='data_lda'>
-        {% for name in data %}
+    <ul id ='lda_data'>
+        {% for name in lda_data %}
             <li>{{ name }}</li>
         {% endfor %}
     </ul>
 
-    <ul id="data_lda_obj">
-        {% for data_obj in data_obj %}
+    <ul id="lda_data_obj">
+        {% for data_obj in lda_data_obj %}
             <li  >{{ data_obj }}</li>
         {% endfor %}
     </ul>
 </div>
 
 <style>
-    .axis path,
-    .axis line{
+    circle.hidden {
+        fill: #ccc !important;
+    }
+    .frame {
         fill: none;
         stroke: black;
-        shape-rendering: crispEdges;
-    }
-    .axis text {
-        font-family: sans-serif;
-        font-size: 11px;
-    }
-    .pca{
-        border-style: solid;
-        border-width: 1px;
     }
 </style>
 
-<div class="lda"></div>
-
 <script type="text/javascript">
-        var arr = document.getElementById("data_lda_obj").getElementsByTagName('li'),lda_rows = [];
-        for(var i = 0;i<arr.length;i++){
-            arr_str=arr[i].innerHTML;
-            var obj = eval('(' + arr_str + ')');
-            lda_rows.push(obj)
-        }
 
-        var lda_dataset=new Array();
-        var arr = document.getElementById("data_lda").getElementsByTagName('li'),temp = [];
-        for(var i = 0;i<arr.length;i++){
-            temp.push(arr[i].innerHTML)
-        }
-        for(var i = 0; i<temp.length;i++){
-            temp1=temp[i].replace('[','');
-            temp2=temp1.replace(']','');
-            temp3 = temp2.split(",");
-            numArray = temp3.map((value)=>{
-                return  parseFloat(value);
-            });
-            lda_dataset.push(numArray)
-        }
+    var arr = document.getElementById("lda_data_obj").getElementsByTagName('li'),lda_rows = [];
+    for(var i = 0;i<arr.length;i++){
+        arr_str=arr[i].innerHTML;
+        var obj = eval('(' + arr_str + ')');
+        lda_rows.push(obj)
+    }
 
-        body = d3.select('body');
-        body.selectAll('.text').remove();
-        var svgWidth = 600;
-        var svgHight = 400;
-        var padding =  70;
+    var lda_dataset=new Array();
+    var arr = document.getElementById("lda_data").getElementsByTagName('li'),temp = [];
+    for(var i = 0;i<arr.length;i++){
+        temp.push(arr[i].innerHTML)
+    }
+    for(var i = 0; i<temp.length;i++){
+        temp1=temp[i].replace('[','');
+        temp2=temp1.replace(']','');
+        temp3 = temp2.split(",");
+        numArray = temp3.map((value)=>{
+            return  parseFloat(value);
+        });
+        lda_dataset.push(numArray)
+    }
 
-        // 创建SVG
-        var svg = d3.select('.lda')
-            .append('svg')
-            .attr('width', svgWidth)
-            .attr('height', svgHight);
+    body = d3.select('body');
+    body.selectAll('.text').remove();
 
-        // 创建比例尺
-        var xScale = d3.scale.linear()
-            .domain([d3.min(lda_dataset, function(d) {return d[0];}), d3.max(lda_dataset, function(d) {return d[0];})])
-            .range([padding, svgWidth - padding * 2]);
+    var xScale = d3.scale.linear()
+        .domain([d3.min(lda_dataset, function(d) {return d[0];}), d3.max(lda_dataset, function(d) {return d[0];})])
+        .range([padding, width]);
 
-        var yScale = d3.scale.linear()
-            .domain([d3.min(lda_dataset, function(d) {return d[1];}), d3.max(lda_dataset, function(d) {return d[1];})])
-            .range([svgHight - padding, padding]);
+    var yScale = d3.scale.linear()
+        .domain([d3.min(lda_dataset, function(d) {return d[1];}), d3.max(lda_dataset, function(d) {return d[1];})])
+        .range([padding, height]);
 
-        var rScale = d3.scale.linear()
-            .domain([0, d3.max(lda_dataset, function(d) {
-                return d[1];
-            })]).range([2, 4]);
+    var lda_brush = d3.svg.brush()
+        .x(xScale)
+        .y(yScale)
+        .extent([0, 0], [0, 0])
+        .on("brushstart", brushstart)
+        .on("brush", brushed)
+        .on("brushend", brushend);
 
-        var lda_brush = d3.svg.brush()
-            .x(xScale)
-            .y(yScale)
-            .extent([0, 0], [0, 0])
-            .on("brushstart", brushstart)
-            .on("brush", brushed)
-            .on("brushend", brushend);
+    svg.append('rect')
+        .attr("transform", "translate（" + width + "," + height + ")")
+        .classed("frame", true)
+        .attr("x", padding/2)
+        .attr("y", padding/2)
+        .attr("width", width)
+        .attr("height", height);
 
-        svg.append("g")
-            .call(lda_brush)
-            .selectAll("rect")
-            .style("fill-opacity", 0.1);
+    svg.append("g")
+        .call(lda_brush)
+        .selectAll("rect")
+        .style("fill-opacity", 0.1);
 
-        // 设置散点的坐标, 半径
-        lda_circles = svg.selectAll('circle')
-            .data(lda_dataset)
-            .enter()
-            .append('circle')
-            .classed('lda_circles', true)
-            .attr('cx', function(d) {
-                return xScale(d[0]);
-            })
-            .attr('cy', function(d) {
-                return yScale(d[1]);
-            })
-            .style('stroke','white')
-            .style('fill','red')
-            .attr('r',4);
+    lda_circles = svg.append("g")
+        .attr("tranform", function (d) {
+            return "translate(" + width + "," + height + ")";
+        })
+        .selectAll('circle')
+        .data(lda_dataset)
+        .enter()
+        .append('circle')
+        .attr('cx', function(d) {
+            return xScale(d[0]);
+        })
+        .attr('cy', function(d) {
+            return yScale(d[1]);
+        })
+        .attr('r',4)
+        .style('stroke','white')
+        .style('fill','red');
 
-        svg.selectAll('.lda_circles')
-            .data(lda_rows)
-            .on("mouseover", function(d,i) {
-                key_name=new Array();
-                for(var key in d){
-                    key_value=key+':'+d[key];
-                    key_name.push(key_value)
-                }
-                table=key_name.toString();
-                table_n=table.replace(/,/g,'\n');
-                svg.append("title").text('ID:'+ i +"\n"+ table_n).attr("id","Ttitle");
-                d3.select(this)
-                    .attr("r", 8);
-            })
-            .on("mouseout", function(d){
-                d3.select(this)
-                    .attr("r", 4);
-                d3.select("#Ttitle").remove();
-            });
-
-        function brushstart() {
-            svg.selectAll('.lda_circles')
-                .data(lda_dataset)
-                .style("fill", function (d) {
-                return 'red';
-            })
-        }
-
-        function brushed() {
-            var extend = lda_brush.extent();
-            var xmin = extend[0][0];
-            var xmax = extend[1][0];
-            var ymin = extend[0][1];
-            var ymax = extend[1][1];
-
-            svg.selectAll('.lda_circles').style("fill", function (d) {
-                if(d[0] >= xmin && d[0] <= xmax && d[1] >= ymin && d[1] <= ymax){
-                    return 'red';
+    svg.selectAll('circle')
+        .data(lda_rows)
+        .on("mouseover", function(d,i) {
+            key_name=new Array();
+            for(var key in d){
+                key_value=key+':'+d[key];
+                key_name.push(key_value)
             }
-                else{
-                    return "grey";
-                }
-            })
-        }
+            table=key_name.toString();
+            table_n=table.replace(/,/g,'\n');
+            svg.append("title").text('ID:'+ i +"\n"+ table_n).attr("id","Ttitle");
+            d3.select(this)
+                .attr("r", 8);
+        })
+        .on("mouseout", function(d){
+            d3.select(this)
+                .attr("r", 4);
+            d3.select("#Ttitle").remove();
+        });
 
-        function brushend() {
-            svg.selectAll('.lda_circles')
-                .data(lda_rows);
+    var brushcell;
+    function brushstart() {
+        svg.selectAll('circle')
+            .data(lda_dataset);
+        if(brushcell !== this){
+            d3.select(brushCell).call(lda_brush.clear());
+            brushCell = this;
         }
-    </script>
+    }
+
+    function brushed() {
+        var extend = lda_brush.extent();
+        var xmin = extend[0][0];
+        var xmax = extend[1][0];
+        var ymin = extend[0][1];
+        var ymax = extend[1][1];
+
+        svg.selectAll('circle')
+            .classed("hidden", function (d) {
+                return d[0] < xmin || d[0] > xmax || d[1] < ymin || d[1] > ymax
+            })
+    }
+
+    function brushend() {
+        if (lda_brush.empty()) svg.selectAll(".hidden").classed("hidden", false);
+        svg.selectAll('circle')
+            .data(lda_rows);
+    }
+</script>

@@ -142,7 +142,7 @@ def pca():
     model = MyPCA(source_data)
     projection_data = model.return_data
     projection_data = projection_data.tolist()
-    return render_template("pca.html", data=projection_data, data_obj=dictionary_data, method='PCA')
+    return render_template("pca.html", pca_data=projection_data, pca_data_obj=dictionary_data, method='PCA')
 
 
 @app.route('/projection/kpca')
@@ -198,7 +198,7 @@ def lda():
     model = MyLDA(source_data)
     projection_data = model.return_data
     projection_data = projection_data.tolist()
-    return render_template("draw_projection.html", data=projection_data, data_obj=dictionary_data, method='LDA')
+    return render_template("lda.html", lda_data=projection_data, lda_data_obj=dictionary_data, method='LDA')
 
 
 @app.route('/projection/fica')
