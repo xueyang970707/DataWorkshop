@@ -1,0 +1,458 @@
+<body>
+<div id="texts" class="texts">
+<ul id="name" >
+    {% for name in data %}
+        <li>{{ name }}</li>
+    {% endfor %}
+</ul>
+<ul id="data_obj">
+    {% for data_obj in data_obj %}
+        <li  >{{ data_obj }}</li>
+    {% endfor %}
+</ul>
+</div>
+</body>
+  <style>
+circle.selected{
+  fill:#3eb489;
+}
+
+.radviz-circle{
+    background:white ;
+}
+p{
+  margin:0;
+}
+#title{
+   margin: 0 auto 10px;
+
+   max-width: 2000px;
+   line-height: 2.844rem;
+   font-size: 2.4rem;
+}
+#csvInput{
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  text-align: center;
+  height: 50px;
+  background-color: white;
+  border-top: solid black;
+}
+  #csvInputText{
+    font-size: 1em;
+    position: relative;
+  	top: 50%;
+  	transform: translateY(-50%);
+  }
+  .title2{
+    margin-top: 15px;
+  }
+
+.column-left{
+  float: left;
+  margin-top: inherit;
+  width: 20%;
+}
+.column-right{
+  float: right;
+  margin-top: inherit;
+   width: 20%;
+  }
+.column-center{
+  display: inline-block;
+  margin-top: inherit;
+  width: 60%;
+}
+.displayStyle{
+  background-color: white;
+  margin-left: 25px;
+  margin-right: 25px;
+  padding: 15px;
+  margin-top:10px;
+}
+.displayStyle p{
+  line-height: 5%;
+}
+#subtitleDisplay{
+  font-size: 10px;
+}
+.selectionAlignment{
+  text-align: left;
+}
+#info{
+  position:fixed;
+  width:200px;
+  height:auto;
+  padding:10px;
+  background-color:white;
+  border-radius:10px;
+  box-shadow: 4px 4px 10px rgba(0,0,0,0.4);
+}
+#info.hidden{
+  display:none;
+}
+#info p{
+  margin:0px;
+  font-size:12px;
+  font-weight: bold;
+}
+.button {
+    background-color: white;
+    color: black;
+    border: 2px solid #63d297;
+}
+.button:hover {
+    background-color: #63d297;
+    color: white;
+}
+</style>
+
+
+    <div class="container">
+      <!-- CENTER COLUMN -->
+       <div class="column-center">
+
+         <div id="visDiv"></div>
+       </div>
+        <!-- LEFT COLUMN -->
+       <div class="column-left">
+         <form action="http://www.cs.middlebury.edu/~bwbrown/cs465/radviz/setVariables" id="setVars" class="displayStyle">
+           <p style="margin-bottom:10px" class="title2"> <b>Select Variables</b> </p>
+               <table>
+            <tbody><tr>
+               <td id="numeric" class="selectionAlignment"></td>
+            </tr>
+         </tbody></table>
+         </form>
+         <form action="http://www.cs.middlebury.edu/~bwbrown/cs465/radviz/setColorVar" id="setColorVar" class="displayStyle">
+           <p style="margin-bottom:15px"> <b>Color by:</b> </p>
+               <table>
+            <tbody><tr>
+               <td id="colorVar" class="selectionAlignment">
+               <g><input type="radio" value="-1" label="None" name="colorAttribute" checked="">
+                  <text>None</text>
+                  <p></p>
+                </g>
+                <g id="colorGroup"></g>
+                </td>
+            </tr>
+         </tbody></table>
+         </form>
+
+       </div>
+
+        <!-- RIGHT COLUMN -->
+
+    </div>
+
+  <!-- Create html for tooltip selection -->
+  <div id="info" class="hidden">
+    <div class="tooltipText" style="text-align:left">
+        <g id="nonNumeric"></g>
+        <g id="colorCategory"></g>
+        <g id="numeric"></g>
+    </div>
+  </div>
+
+    <script>
+      var createVis = function(parent, width, height){
+        var dataset, displayVars, springConstants, anchorPoints, tooltipVars, colorVar;
+//console.log(width)
+        // Set dimensions.
+        var margins = {top:60, bottom:60, left: 60, right:60};
+        var chartWidth = width - margins.left - margins.right;
+        var chartHeight = height - margins.top - margins.bottom;
+        var center = {x: chartWidth/2, y: chartHeight/2};
+        var radius = Math.min(center.x, center.y);
+        var color = d3.scale.category10();
+
+
+        var svg = d3.select(parent)
+          .append("svg")
+          .attr({width:width, height:height});
+
+        var chart = svg.append("g")
+          .attr("transform", "translate("+margins.left + "," + margins.top + ")");
+
+        var chartBorder = svg.append("g")
+          .attr("transform", "translate("+margins.left + "," + margins.top + ")");
+
+        var angleToPoint = function(angle) {
+          return {
+            x: center.x + radius*Math.cos(angle),
+            y: center.y + radius*Math.sin(angle)
+          };
+        };
+
+
+        // vis() redraws the visualization.
+        var vis = function(){
+
+          // Create anchor points and style anchor points.
+          anchorPoints = displayVars.map(function(d, i, arr){return angleToPoint((2*Math.PI/arr.length)*i);});
+          var anchorCircles = chartBorder.selectAll("circle").data(anchorPoints);
+          anchorCircles.exit().remove();
+          anchorCircles.enter().append("circle");
+          anchorCircles
+
+          .attr({
+            cx: function(d){return d.x},
+            cy: function(d){return d.y},
+            r: 3
+          }).style("fill", "black");
+
+
+          // Create anchor point labels.
+          var offsetDistance = 7;
+
+          var getTextX = function(d, i) {
+            var xOffset = anchorPoints[i].x - center.x;
+            var yOffset = anchorPoints[i].y - center.y;
+            var angle = Math.atan2(yOffset, xOffset);
+            return anchorPoints[i].x + offsetDistance*Math.cos(angle);
+          };
+          var getTextY = function(d, i) {
+            var xOffset = anchorPoints[i].x - center.x;
+            var yOffset = anchorPoints[i].y - center.y;
+            var angle = Math.atan2(yOffset, xOffset);
+            return anchorPoints[i].y + offsetDistance*Math.sin(angle);
+          };
+          var getTextAnchor = function(d, i) {
+            var xOffset = anchorPoints[i].x - center.x;
+            if (xOffset >= -0.1) return "start";
+            return "end";
+          }
+          var getTextBaseline = function(d, i) {
+            var yOffset = anchorPoints[i].y - center.y;
+            if (yOffset > 0) return "hanging";
+            return "alphabetic";
+          }
+
+          var anchorLabels = chartBorder.selectAll("text").data(displayVars);
+          anchorLabels.exit().remove();
+          anchorLabels.enter().append("text");
+          anchorLabels.attr({
+            x: getTextX,
+            y: getTextY,
+            "font-size": 10,
+            "text-anchor": getTextAnchor,
+            "alignment-baseline": getTextBaseline,
+            "pointer-events": "none"
+          }).text(function(d){return d});
+
+          // Create circle for RadViz
+          chartBorder.append("circle")
+              .attr("classed", "radviz_circle")
+            .attr({
+            cx: center.x,
+            cy: center.y,
+            r: radius,
+            })
+            .style("stroke", "black")    // set the line color
+            .style("fill", "none");
+
+          springConstants = displayVars.map(function(){return d3.scale.linear().range([0, 1]);});
+          springConstants.forEach(function(element, index, array){
+            element.domain(d3.extent(dataset, function(d){return +d[displayVars[index]];}));
+          });
+
+          if (colorVar) color.domain(allValuesOf(dataset, colorVar));
+
+          var circles = chart.selectAll("circle").data(dataset);
+
+          circles.exit().remove();
+
+          circles.enter().append("circle")
+              .data(rows)
+              .on("mouseover", function(d,i) {
+
+                  d3.select(this);
+             key_name=new Array();
+            for(var key in d){
+                key_value=key+':'+d[key];
+                key_name.push(key_value)
+                }
+            table=key_name.toString();
+            table_n=table.replace(/,/g,'\n');
+            console.log('ID:'+ i +"\n"+ table_n);
+            svg.append("title").text('ID:'+ i +"\n"+ table_n).attr("id","Ttitle");
+           d3.select(this)
+           .attr("r", 8);
+
+ })
+
+.on("mouseout", function(d){
+            d3.select("#Ttitle").remove();
+            d3.select(this)
+              .attr("r", 2);});
+
+          var getPt = function(d) {
+            var list = springConstants.map(function(element, index, array){
+
+              return element(d[displayVars[index]]);}
+              );
+            var sum = list.reduce(function(prev, cur) {return prev + cur;});
+            var pt = {x:0, y:0};
+            for (var i = 0; i < anchorPoints.length; i++) {
+              pt.x += (list[i]/sum)*anchorPoints[i].x
+              pt.y += (list[i]/sum)*anchorPoints[i].y
+            }
+            return pt;
+          }
+
+          var getX = function(d) {return getPt(d).x; };
+
+          var getY = function(d) {return getPt(d).y; };
+
+          circles.transition()
+          .duration(500)
+          .attr({
+            cx: getX,
+            cy: getY,
+            r: 2
+          }).style("fill", function(d){
+            if (!colorVar) {return "black";}
+            return color(d[colorVar]);});
+
+
+        };
+
+        vis.loadData = function(data){
+          dataset = data;
+          return vis;
+        }
+        vis.setVars = function(value){
+          if (!arguments.length) return displayVars;
+          displayVars = value;
+          return vis;
+        }
+
+        vis.setTooltipVars = function(value) {
+          if (!arguments.length) return tooltipVars;
+          tooltipVars = value;
+          return vis;
+        }
+
+        vis.setColorVar = function(value) {
+          if (!arguments.length) return colorVar;
+          colorVar = value;
+          return vis;
+        }
+
+        return vis;
+      };
+
+      var allValuesOf = function(data, variable) {
+          var values = [];
+          for (var i=0; i<data.length; i++){
+            if (!values.includes(data[i][variable])) {
+              values.push(data[i][variable]);
+            }
+          }
+          return values;
+        };
+
+      var vis = createVis("#visDiv", 700,440);
+
+ // Allow for user to adjust displayed variables and redraws vis as changes occur.
+        var numericAttributeSelection = d3.select("#setVars").on("change", function(d){
+          var selection = document.querySelectorAll('input[name="numericAttribute"]:checked');
+          var variables = [];
+          for (var i=0; i<selection.length; i++) {
+            variables.push(selection[i].value);
+          }
+          vis.setVars(variables);
+          vis();
+        });
+
+        var tooltipAttributeSelection = d3.select("#setTooltipDisplay").on("change", function(d){
+          var selection = document.querySelectorAll('input[name="tooltipAttribute"]:checked');
+          var variables = [];
+          for (var i=0; i<selection.length; i++) {
+            variables.push(selection[i].value);
+          }
+
+          vis.setTooltipVars(variables);
+          vis();
+        });
+
+        var colorAttributeSelection = d3.select("#setColorVar").on("change", function(d){
+          var selection = document.querySelector('input[name="colorAttribute"]:checked');
+          var val = selection.value;
+          if (val == "-1") vis.setColorVar(null);
+          else vis.setColorVar(val);
+          vis();
+        })
+
+
+   var arr = document.getElementById("data_obj").getElementsByTagName('li'),rows = [];
+for(var i = 0;i<arr.length;i++){
+    arr_str=arr[i].innerHTML;
+    var obj = eval('(' + arr_str + ')');
+    rows.push(obj)
+
+}
+console.log(rows);
+var dataset=new Array()
+    var arr = document.getElementById("name").getElementsByTagName('li');
+    for(var i = 0;i<arr.length;i++){
+    arr_str=arr[i].innerHTML;
+    var obj = eval('(' + arr_str + ')');
+    dataset.push(obj)
+    }
+body = d3.select('body');
+ body.select('.texts').remove();
+            var isNumeric = function( n ) {
+              return !isNaN(parseFloat(n)) && isFinite(n);
+            }
+
+            var addToTable = function(propertyList, parent, name, type) {
+
+             var inputlist = d3.select(parent).selectAll("g").data(propertyList);
+
+              inputlist.exit().remove();
+
+              var groups = inputlist.enter().append("g");
+              groups.append("input");
+              groups.append("text");
+
+              inputlist.select("input")
+              .attr({
+                "type":type,
+                "value":function(d){return d},
+                "label":function(d){return d},
+                "name":name
+              });
+
+              inputlist.select("text").text(function(d){return d}).append("p");
+            };
+
+            var numericProps = [];
+            for (property in dataset[0]) {
+              if (isNumeric(dataset[0][property])) {
+                numericProps.push(property);
+              }
+            }
+            addToTable(numericProps, "#numeric", "numericAttribute", "checkbox");
+
+            //adding all data attributes to tooltip table
+            addToTable(Object.keys(dataset[0]), "#tooltip", "tooltipAttribute", "checkbox");
+
+            //find categorical vars
+            var categoricalVars = [];
+            for (property in dataset[0]) {
+              if (allValuesOf(dataset, property).length <= 20) {
+                categoricalVars.push(property);
+              }
+            }
+
+            addToTable(categoricalVars, "#colorGroup", "colorAttribute", "radio");
+
+            vis.loadData(dataset);
+            vis.setVars([]);
+            vis.setTooltipVars([]);
+            vis();
+   //  });
+    </script>
+

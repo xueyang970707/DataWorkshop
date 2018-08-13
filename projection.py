@@ -1,4 +1,4 @@
-from sklearn import random_projection, decomposition, manifold, ensemble, preprocessing
+from sklearn import random_projection, decomposition, manifold, ensemble, preprocessing, discriminant_analysis
 
 
 class MyGaussianRandomProjection:
@@ -98,6 +98,16 @@ class MyLDA:
         min_max_scaler = preprocessing.MinMaxScaler()
         data_source = min_max_scaler.fit_transform(source)
         pca = decomposition.LatentDirichletAllocation(n_components=2)
+        self.return_data = pca.fit_transform(data_source)
+
+
+class MyQDA:
+    return_data = []
+
+    def __init__(self, source):
+        min_max_scaler = preprocessing.MinMaxScaler()
+        data_source = min_max_scaler.fit_transform(source)
+        pca = discriminant_analysis.QuadraticDiscriminantAnalysis(n_components=2)
         self.return_data = pca.fit_transform(data_source)
 
 
