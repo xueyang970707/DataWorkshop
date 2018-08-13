@@ -1,0 +1,240 @@
+<style>
+    circle.hidden {
+        fill: #ccc !important;
+    }
+    .frame {
+        fill: none;
+        stroke: black;
+    }
+    #cluster_projection_report{
+        overflow: auto;
+        text-align: center;
+        border: 1px solid #0c5460;
+        margin: 100px;
+    }
+    .head{
+        font-size: 29px;
+        display: block;
+    }
+    .content{
+        display: block;
+    }
+</style>
+<div id="getdata">
+    <ul id="data">
+        {% for name in data %}
+            <li>{{ name }}</li>
+        {% endfor %}
+    </ul>
+
+    <ul id="cluster">
+        <li>{{ clusters }}</li>
+    </ul>
+
+    <ul id="data_obj">
+        {% for d in data_obj %}
+            <li>{{ d }}</li>
+        {% endfor %}
+    </ul>
+
+    <ul id="method">
+        <li>{{ method }}</li>
+    </ul>
+</div>
+<div class="KMeans"></div>
+<div>
+<button  class="button_blue" onclick="generate_anlaysis_report()">Generate Your Report</button>
+<button  class="button_blue" onclick="download_anlysis_report()">Download Your Report</button>
+</div>
+<script id="tmpl" type="text/html">
+    <xdoc version="A.3.0">
+        <body>
+            <para heading="1" lineSpacing="28">
+                <text class="head" valign="center" fontName="标宋" fontSize="29"><%=title%></text>
+            </para>
+            <para lineSpacing="9">
+                <text class="content" fontName="仿宋" fontSize="18"><%=content%></text>
+            </para>
+        </body>
+    </xdoc>
+</script>
+<script type="text/javascript">
+
+    colors = ["purple", "maroon", "navy", "aqua", "lime", "sliver", "red", "yellow", "blue", "darkslategray"];
+    d3Colors = d3.scale.ordinal().range(["purple", "maroon", "navy", "aqua", "lime", "sliver", "red", "yellow", "blue", "darkslategray"]);
+
+    arr = document.getElementById("method").getElementsByTagName('li');
+    method = '.' + arr[0].innerHTML;
+
+    var arr = document.getElementById("data_obj").getElementsByTagName('li'),rows = [];
+    for(var i = 0;i<arr.length;i++) {
+        arr_str = arr[i].innerHTML;
+        var obj = eval('(' + arr_str + ')');
+        rows.push(obj)
+    }
+
+    dataset=new Array()
+    var arr = document.getElementById("data").getElementsByTagName('li'),temp = [];
+    for(var i = 0;i<arr.length;i++){
+        temp.push(arr[i].innerHTML);
+    }
+    for(var i = 0; i<temp.length;i++){
+        temp1=temp[i].replace('[','');
+        temp2=temp1.replace(']','');
+        temp3 = temp2.split(",");
+        numArray = temp3.map((value)=>{
+            return  parseFloat(value);
+        });
+        dataset.push(numArray);
+    }
+
+    arr = document.getElementById("cluster").getElementsByTagName('li');
+    temp = arr[0].innerHTML;
+    clusters = parseInt(temp);
+
+    indexes = new Array();
+    for(j = 0; j < clusters; j++){
+        each_cluster_indexes = [];
+        for(i = 0; i < dataset.length; i++){
+            if(dataset[i][2] == j){
+                each_cluster_indexes.push(i);
+            }
+        }
+        indexes.push(each_cluster_indexes)
+    }
+
+    body = d3.select('body');
+    body.selectAll('#getdata').remove();
+
+    var svgWidth = 600;
+    var svgHight = 400;
+    var padding =  70;
+    var brushcell = undefined;
+
+    var svg = d3.select(method)
+        .append('svg')
+        .attr('width', svgWidth)
+        .attr('height', svgHight);
+
+    // 创建比例尺
+    var xScale = d3.scale.linear()
+        .domain([d3.min(dataset, function(d) {
+            return d[0];
+        }), d3.max(dataset, function(d) {
+            return d[0];
+        })]).range([padding, svgWidth - padding * 2]);
+
+    var yScale = d3.scale.linear()
+        .domain([d3.min(dataset, function(d) {
+            return d[1];
+        }), d3.max(dataset, function(d) {
+            return d[1];
+        })]).range([svgHight - padding, padding]);
+
+    var rScale = d3.scale.linear()
+        .domain([0, d3.max(dataset, function(d) {
+            return d[1];
+        })]).range([2, 4]);
+
+    svg.append('rect')
+        .classed("frame", true)
+        .attr("x", padding/2)
+        .attr("y", padding/2)
+        .attr("width", svgWidth-padding)
+        .attr("height", svgHight-padding);
+
+    var  brush = d3.svg.brush()
+        .x(xScale)
+        .y(yScale)
+        .extent([0, 0], [0, 0])
+        .on("brushstart", brushstart)
+        .on("brush", brushed)
+        .on("brushend", brushend);
+
+    svg.append("g")
+        .call(brush)
+        .selectAll("rect")
+        .style("fill-opacity", 0.1);
+
+  circles =  svg.selectAll('circle')
+            .data(dataset)
+            .enter()
+            .append('circle')
+            .attr('cx', function(d) {
+                return xScale(d[0]);
+            })
+            .attr('cy', function(d) {
+                return yScale(d[1]);
+            })
+            .style('stroke','white')
+            .attr('r',4)
+            .style('fill', function(d) { return d3Colors(d[2]) })
+            .data(rows)
+            .on("mouseover", function(d,i) {
+                key_name=new Array();
+                for(var key in d){
+                    key_value=key+':'+d[key];
+                    key_name.push(key_value)
+                }
+                table=key_name.toString();
+                table_n=table.replace(/,/g,'\n');
+                svg.append("title").text('ID:'+ i +"\n"+ table_n).attr("id","Ttitle");
+                d3.select(this)
+                    .attr("r", 8);
+            })
+            .on("mouseout", function(d){
+                d3.select(this)
+                    .attr("r", 4);
+                d3.select("#Ttitle").remove();
+            });
+
+    function brushstart() {
+        svg.selectAll('circle')
+            .data(dataset);
+        if(brushcell !== this){
+            d3.select(brushcell).call(brush.clear());
+            brushcell = this;
+        }
+    }
+
+  function brushed() {
+      var extend = brush.extent();
+      var xmin = extend[0][0];
+      var xmax = extend[1][0];
+      var ymin = extend[0][1];
+      var ymax = extend[1][1];
+
+      svg.selectAll('circle')
+            .classed("hidden", function (d) {
+                return d[0] < xmin || d[0] > xmax || d[1] < ymin || d[1] > ymax
+            })
+  }
+
+  function brushend() {
+      if (brush.empty()) svg.selectAll(".hidden").classed("hidden", false);
+      svg.selectAll('circle')
+          .data(rows);
+  }
+
+  function generate_anlaysis_report() {
+      if(d3.select("#cluster_projection_report")){
+          d3.selectAll("#cluster_projection_report").remove();
+      }
+      analy_re = d3.select("#draw_cluster_projection").append("div")
+            .attr("id", "cluster_projection_report");
+      for(i = 0; i < clusters; i++){
+            analy_re.append("p").text(indexes[i]);
+        }
+  }
+
+  function download_anlysis_report() {
+      var type="docx";
+      var data = {
+          title: "cluster && projection report",
+          content: ""
+      };
+      XDoc.to(baidu.template('tmpl', data), type, {});
+  }
+
+</script>
+
