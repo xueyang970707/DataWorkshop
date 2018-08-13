@@ -2,92 +2,253 @@
 <html lang="en">
 
 <head>
-
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DataWorkshop</title>
     <meta name="description" content="">
     <meta name="author" content="">
-    <title>Data Workshop</title>
-
-    <link href="../static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link href="../static/vendor/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
-    <link href="../static/vendor/datatables/dataTables.bootstrap4.css" rel="stylesheet">
-    <link href="../static/css/sb-admin.css" rel="stylesheet">
-
+    <link rel="stylesheet" type="text/css"  href="../static/css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="../static/fonts/font-awesome/css/font-awesome.css">
+    <link rel="stylesheet" type="text/css"  href="../static/css/style.css">
+    <link rel="stylesheet" type="text/css" href="../static/css/nivo-lightbox/nivo-lightbox.css">
+    <link rel="stylesheet" type="text/css" href="../static/css/nivo-lightbox/default.css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,900" rel="stylesheet">
 </head>
 
-<body class="fixed-nav sticky-footer bg-dark" id="page-top">
+<style>
+    #personal_picture{
+        width: 30px;
+        height: 30px;
+    }
+    #header{
+        padding-top: 300px;
+        padding-bottom: 100px;
+        background: black;
+    }
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" id="mainNav">
+    #statistics{
+        padding-top: 100px;
+        padding-bottom: 300px;
+        background: black;
+    }
+    #cluster_projection{
+        padding-top: 100px;
+        padding-bottom: 300px;
+        background: black;
+    }
+    #visualization{
+        padding-top: 100px;
+        padding-bottom: 300px;
+        background: black;
+    }
+    #contact{
+        padding-top: 100px;
+        background: black;
+    }
+    svg{
+        background: white;
+    }
+</style>
 
-    <a class="navbar-brand" href="/index">Data Workshop</a>
+<body id="page-top" data-spy="scroll" data-target=".navbar-fixed-top">
+<nav id="menu" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar"></span> <span class="icon-bar"></span> <span class="icon-bar"></span> </button>
+            <a class="navbar-brand page-scroll" href="#page-top">DataWorkshop</a>
+        </div>
 
-    <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-    </button>
-
-    <div class="collapse navbar-collapse" id="navbarResponsive">
-
-        <ul class="navbar-nav navbar-sidenav" id="exampleAccordion">
-
-            <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Dashboard">
-                <a class="nav-link" href="/upload">
-                    <span class="nav-link-text">Main</span>
-                </a>
-            </li>
-
-
-
-            <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Charts">
-                <a class="nav-link" href="/statistics">
-                    <span class="nav-link-text">Statistics</span>
-                </a>
-            </li>
-
-            <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Tables">
-                <a class="nav-link" href="/projection">
-                    <span class="nav-link-text">Projection</span>
-                </a>
-            </li>
-
-            <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Tables">
-                <a class="nav-link" href="/cluster">
-                    <span class="nav-link-text">Cluster</span>
-                </a>
-            </li>
-
-            <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Tables">
-                <a class="nav-link" href="/visualization">
-                    <span class="nav-link-text">Visualization</span>
-                </a>
-            </li>
-
-        </ul>
-
-    </div>
-
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            <ul class="nav navbar-nav navbar-right">
+                <li><a href="#statistics" class="page-scroll">Statistics</a></li>
+                <li><a href="#cluster_projection" class="page-scroll">Projection & Cluster</a></li>
+                <li><a href="#visualization" class="page-scroll">Visualization</a></li>
+                <li><a href="#contact" class="page-scroll">Contact</a></li>
+                <li><a href="#contact" class="page-scroll"><img id="personal_picture" src="../static/img/personal_picture.png"></a></li>
+            </ul>
+        </div>
+  </div>
 </nav>
 
-<div class="content-wrapper">
-
-    <div class="container-fluid">
-
-
-
-        <footer class="sticky-footer">
+<header id="header">
+    <div class="upload">
+        <div class="overlay">
             <div class="container">
-                <div class="text-center">
-                    <small>Data Workshop</small>
+                <div class="row">
+                    <div class="intro-text" align="center">
+                        <h1><strong>DataWorkshop</strong></h1>
+                        <p>Firstly, please upload your data file!</p>
+                        <div>
+                            <br />
+                            <input class="button_blue" id="file_path" name="file_path" type="button" onclick="path.click()" value="choose a file">
+                            <input type="file" id="path" style="display:none" name="csvfile"  onchange="file_path.value=this.value">
+                            <input class="button_blue" type="button" onclick="read_file()" value="submit">
+                        </div>
+                    </div>
                 </div>
             </div>
-        </footer>
-
+        </div>
     </div>
+</header>
 
+
+<div id="statistics">
+    <div class="col-md-10 col-md-offset-1 section-title text-center">
+        <h2>Statistics</h2>
+    </div>
+    <div class="container">
+        <div class="row">
+            <div><input type="button" class="button_blue" onclick="showAtRight('/statistics','#draw_statistics')" value="Show The Result"></div>
+            <br /><div id="draw_statistics"></div>
+        </div>
+    </div>
 </div>
+
+<div id="cluster_projection">
+    <div class="col-md-10 col-md-offset-1 section-title text-center">
+        <h2>Cluster&Projection</h2>
+    </div>
+    <div class="container">
+        <div class="row">
+            <input class="button_blue" type="button"  onclick="showAtRight('/cluster_projection','#draw_cluster_projection')" value="Show The Result">
+            <div id="draw_cluster_projection"></div>
+        </div>
+    </div>
+</div>
+
+<div id="visualization">
+    <div class="col-md-10 col-md-offset-1 section-title text-center">
+        <h2>Visualization</h2>
+    </div>
+    <div class="container">
+        <div class="row">
+            <input class="button_blue" type="button"  onclick="showAtRight('/visualization','#draw_visualization')" value="Show The Result">
+            <div id="draw_visualization"></div>
+        </div>
+    </div>
+</div>
+
+<div id="contact">
+</div>
+
+<script type="text/javascript" src="../static/js/jquery.1.11.1.js"></script>
+<script type="text/javascript" src="../static/js/bootstrap.js"></script>
+<script type="text/javascript" src="../static/js/SmoothScroll.js"></script>
+<script type="text/javascript" src="../static/js/nivo-lightbox.js"></script>
+<script type="text/javascript" src="../static/js/jquery.isotope.js"></script>
+<script type="text/javascript" src="../static/js/jqBootstrapValidation.js"></script>
+<script type="text/javascript" src="../static/js/contact_me.js"></script>
+<script type="text/javascript" src="../static/js/main.js"></script>
+<script src="https://cdn.bootcss.com/PapaParse/4.4.0/papaparse.js"></script>
+<script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+<script src=" https://cdnjs.cloudflare.com/ajax/libs/jschardet/1.4.1/jschardet.min.js"></script>
+<script type="text/javascript" src="http://www.xdocin.com/xdoc.js"></script>
+<script type="text/javascript" src="http://www.xdocin.com/baiduTemplate.js"></script>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+
+<script>
+    $.fn.csv2arr = function( callback ){
+            if( typeof(FileReader) == 'undefined' ){    //if not H5
+                alert("Your browser is too old,please use Chrome or Firefox");
+                return false;
+            }
+            if( ! $(this)[0].files[0]){
+                alert("Please select a file");
+                return false;
+            }
+            var fReader = new FileReader();
+            fReader.readAsDataURL( $(this)[0].files[0] );
+            $fileDOM = $(this);
+            fReader.onload = function(evt){
+                var data = evt.target.result;
+                var encoding = checkEncoding( data );
+                Papa.parse( $($fileDOM)[0].files[0], {
+                    encoding: encoding,
+                    complete: function(results) {
+                        var res = results.data;
+                        $.ajax({
+                            url: '/data_workshop',
+                            type: 'POST',
+                            data: {d: JSON.stringify(res)},
+                            dataType: 'json',
+                            success:
+                                alert('success !')
+                        });
+                        if( res[ res.length-1 ] == ""){
+                            res.pop();
+                        }
+                        callback && callback( res );
+                    }
+                });
+            };
+            fReader.onerror = function(evt){
+                alert("The file has changed,please select again.(Firefox)");
+            };
+
+            function checkEncoding( base64Str ){
+                var str = atob( base64Str.split(";base64,")[1] );
+                var encoding = jschardet.detect( str );
+                encoding = encoding.encoding;
+                console.log( encoding );
+                if( encoding == "windows-1252"){
+                    encoding = "ANSI";
+                }
+                return encoding;
+            }
+        };
+    function read_file(){
+        $("input[name=csvfile]").csv2arr(function(res){
+        });
+    }
+
+    function showAtRight(url, id){
+        $.ajax({
+            type :"GET",
+            url : url,
+            dataType:"html",
+            success : function(data) {//返回数据根据结果进行相应的处理
+                $(id).html(data);
+            },
+                error:function(){
+                    $(id).html("获取数据失败！");
+                }
+            });
+        }
+
+    function generate_stt_report() {
+        if(d3.select("#statistics_report")){
+            d3.selectAll("#statistics_report").remove();
+        }
+        stt_re = d3.select("#draw_statistics").append("div")
+            .attr("id", "statistics_report");
+        for(i = 0; i < stt_data[0].length; i++){
+            stt_re.append("p").text(all_strings[i]);
+        }
+    }
+
+    function download_stt_report() {
+        var type="docx";
+        var data = {
+            title: "statistics report",
+            content: all_strings,
+        };
+        XDoc.to(baidu.template('tmpl', data), type, {});
+    }
+</script>
+
+<script id="tmpl" type="text/html">
+    <xdoc version="A.3.0">
+        <body>
+            <para heading="1" lineSpacing="28">
+                <text class="head" valign="center" fontName="标宋" fontSize="29"><%=title%></text>
+            </para>
+            <para lineSpacing="9">
+                <text class="content" fontName="仿宋" fontSize="18"><%=content%></text>
+            </para>
+        </body>
+    </xdoc>
+</script>
 
 
 </body>
-
 </html>
