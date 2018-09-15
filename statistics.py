@@ -16,11 +16,12 @@ def tran2float(values_array):
 class Statistics:
     mean = []
     median = []
-    mode = None
+    mode = []
     min = []
     max = []
     var = []
     cov = []
+    corr = []
     sampling_data = []
 
     def __init__(self, source, frame):
@@ -32,4 +33,4 @@ class Statistics:
         self.max = tran2float(np.max(source, axis=0))
         self.var = tran2float(np.var(source, axis=0))
         self.cov = np.cov(source)
-
+        self.corr = np.array(source.corr(method='spearman')).tolist()
