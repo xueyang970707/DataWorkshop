@@ -1,25 +1,36 @@
+from datetime import timedelta, datetime
+import os,shutil
+import smtplib
+import csv
+from model import user, db, login, mailconfirm, methoduse
+import os, shutil
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.header import Header
+import random
 import ast
 import numpy as np
-from flask import Flask, request, json, redirect, render_template, url_for, flash
+import pandas as pd
+import copy
+from flask import Flask, request, json, redirect, render_template, url_for, flash, session, g, jsonify
 from statistics import Statistics
-from projection import MyGaussianRandomProjection, MySparseRandomProjection, \
-    MyPCA, MyMiniBatchSparsePCA, MyKernelPCA, MySparsePCA, MyRandomizedPCA, MyIncrementalPCA, \
-     MyNMF, MyLDA, MyFastICA, MyMDS, MyISOMAP, MyLLE, MyHLLE, MyMLLE, MyLTSA, MyTSNE, MySpectralEmbedding, MyRandomForestEmbedding
-from cluster import MyAP, MyBirch, MyDBSCAN, MyGMM, MyHierarchical, MyKmeans, MyMeanShift, MySC, MyAC,\
-    MyMiniBatchKMeans, MyHDBSCAN, MyFeatureAgglomeration
-
+from projection import ProjectionWay
+from cluster import ClusterWay, EvaluationWay
+from anomaly import AnonalyMethod
+import sys
+from io import StringIO
+from werkzeug.utils import secure_filename
+import zipfile
 
 app = Flask(__name__)
+# 用于加密，作为盐混在原始的字符串中，然后用加密算法进行加密
+app.config['SECRET_KEY'] = os.urandom(24)
+# 设定session的保存时间，当session.permanent=True的时候
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 
-global source_data
-global data_frame
-source_data = []
-data_frame = []
-
-global dictionary_data
-global dictionary_data_title
-dictionary_data = []
-dictionary_data_title = []
+global final_data_object
+final_data_object = {}
 
 
 def data_list_to_dictionary(list_key, list_value):
@@ -32,68 +43,902 @@ def data_list_to_dictionary(list_key, list_value):
     return dict
 
 
+def create_differ_type_data(fea_list, da_list, type):
+    global final_data_object
+    identifiers_list = []  # identifiers of samples
+    features_list = fea_list  # features of samples
+    data_list = []  # data for clean
+    no_identifiers_data_list = []  # data for cluster & embedding
+    no_identifiers_data_dictionary = []  # dictionary data for visual analysis
+    features_dictionary = []  # dictionary features for display
+    data_dictionary = []  # dictionary data for display
+    temp = copy.deepcopy(da_list)
+    data_exception_flag = True
+    for temp_list in temp:
+        identifiers_list.append(temp_list[0])
+        del temp_list[0]
+        if type:
+            sample_list = []
+            for str in temp_list:
+                try:
+                    t = ast.literal_eval(str)
+                except:
+                    data_exception_flag = False
+                    t = 'no_data'
+                finally:
+                    sample_list.append(t)
+            no_identifiers_data_list.append(sample_list)
+        else:
+            no_identifiers_data_list.append(temp_list)
+    # get data_list
+    for temp_list in da_list:
+        if type:
+            sample_list = []
+            for str in temp_list:
+                if temp_list.index(str) == 0:
+                    sample_list.append(str)
+                    continue
+                try:
+                    t = ast.literal_eval(str)
+                except:
+                    data_exception_flag = False
+                    t = 'no_data'
+                finally:
+                    sample_list.append(t)
+            data_list.append(sample_list)
+        else:
+            data_list.append(temp_list)
+        # get data_dictionary & no_identifiers_data_dictionary
+    for i in range(len(temp)):
+        l = temp[i]
+        list_num = []
+        list_num.append(identifiers_list[i])
+        for num in l:
+            list_num.append(num)
+        my_dic = data_list_to_dictionary(features_list, list_num)
+        data_dictionary.append(my_dic)
+        my_dic = data_list_to_dictionary(features_list[1:], list_num[1:])
+        no_identifiers_data_dictionary.append(my_dic)
+    # get features_dictionary
+    features_dictionary.append(data_list_to_dictionary(features_list, features_list))
+    final_data_object['identifiers_list'] = identifiers_list
+    final_data_object['features_list'] = features_list
+    final_data_object['data_list'] = data_list
+    final_data_object['no_identifiers_data_list'] = no_identifiers_data_list
+    final_data_object['no_identifiers_data_list_transform'] = np.transpose(no_identifiers_data_list).tolist()
+    final_data_object['no_identifiers_data_dictionary'] = no_identifiers_data_dictionary
+    final_data_object['features_dictionary'] = features_dictionary
+    final_data_object['data_dictionary'] = data_dictionary
+    if not data_exception_flag:
+        return data_exception_flag
+
+    final_data_object['statistics_data'] = {'mean': [], 'median': [], 'mode': [], 'min': [], 'max': [], 'var': [],
+                                            'corr': []}
+    stt = Statistics(final_data_object['no_identifiers_data_list'], final_data_object['features_list'][1:])
+    final_data_object['statistics_data']['mean'] = stt.mean
+    final_data_object['statistics_data']['median'] = stt.median
+    final_data_object['statistics_data']['mode'] = stt.mode
+    final_data_object['statistics_data']['min'] = stt.min
+    final_data_object['statistics_data']['max'] = stt.max
+    final_data_object['statistics_data']['var'] = stt.var
+    final_data_object['statistics_data']['corr'] = stt.corr
+
+    final_data_object['cluster_method'] = 'KMeans'
+    final_data_object['embedding_method'] = 'Principal_Component_Analysis'
+
+    parameters = {}
+    parameters['data'] = final_data_object['no_identifiers_data_list']
+    result = getattr(ClusterWay(), final_data_object['cluster_method'])(parameters)
+    clustering = result['clustering']
+    labels = clustering.labels_.tolist()
+    final_data_object['n_clusters'] = np.unique(labels).size
+    embedding = getattr(ProjectionWay(), final_data_object['embedding_method'])(
+        final_data_object['no_identifiers_data_list'])
+    samples, features = embedding['data'].shape
+    data_embedding = embedding['data'].tolist()
+    for i in range(samples):
+        lll = labels[i]
+        data_embedding[i].append(lll)
+    final_data_object['cluster_embedding_data'] = data_embedding
+
+    parameters = {}
+    parameters['data'] = final_data_object['no_identifiers_data_list_transform']
+    result = getattr(ClusterWay(), final_data_object['cluster_method'])(parameters)
+    clustering = result['clustering']
+    labels = clustering.labels_.tolist()
+    final_data_object['n_clusters'] = np.unique(labels).size
+    embedding = getattr(ProjectionWay(), final_data_object['embedding_method'])(
+        final_data_object['no_identifiers_data_list_transform'])
+    samples, features = embedding['data'].shape
+    data_embedding = embedding['data'].tolist()
+    for i in range(samples):
+        lll = labels[i]
+        data_embedding[i].append(lll)
+    final_data_object['attributions_analysis_data'] = data_embedding
+
+    final_data_object['anomaly_detection_data'] = AnonalyMethod.clfdetection(final_data_object['cluster_embedding_data'])
+
+    final_data_object['visualization_method'] = 'Radviz'
+
+    return data_exception_flag
+
+
 @app.route('/')
 @app.route('/index')
 def index():
-    return render_template('index.html')
+    global final_data_object
+    # initialization
+    final_data_object = {}
+
+    data_list = pd.read_csv('./test.csv', encoding='gbk')
+    feature_list = data_list.columns
+    feature_list = feature_list.tolist()
+    data_list = np.array(data_list).tolist()
+    create_differ_type_data(feature_list, data_list, 0)
+
+    if session.get('email'):
+        email=session.get('email')
+        user1=user.query.filter_by(email=email).first()
+        print(user1)
+        return render_template('dataworkshop.html', user=user1)
+    else:
+        return render_template('dataworkshop.html',
+                               features_dictionary=final_data_object['features_dictionary'],
+                               no_identifiers_data_list=final_data_object['no_identifiers_data_list'],
+                               no_identifiers_data_list_transform=final_data_object[
+                                   'no_identifiers_data_list_transform'],
+                               no_identifiers_data_dictionary=final_data_object['no_identifiers_data_dictionary'],
+                               data_dictionary=final_data_object['data_dictionary'],
+                               data_list=final_data_object['data_list'],
+                               mean=final_data_object['statistics_data']['mean'],
+                               median=final_data_object['statistics_data']['median'],
+                               mode=final_data_object['statistics_data']['mode'],
+                               min=final_data_object['statistics_data']['min'],
+                               max=final_data_object['statistics_data']['max'],
+                               var=final_data_object['statistics_data']['var'],
+                               corr=final_data_object['statistics_data']['corr'],
+                               features_list=final_data_object['features_list'][1:],
+
+                               cluster_embedding_data=final_data_object['cluster_embedding_data'],
+                               n_clusters=final_data_object['n_clusters'],
+                               cluster_method=final_data_object['cluster_method'],
+                               embedding_method=final_data_object['embedding_method'],
+                               attributions_analysis_data=final_data_object['attributions_analysis_data'],
+                               anomaly_detection_data=final_data_object['anomaly_detection_data'],
+                               visualization_method=final_data_object['visualization_method'])
+
+
+@app.route('/login/', methods=['GET', 'POST'])
+def user_login():
+    session.clear()
+    return render_template('login.html')
+
+
+# 这个装饰器的作用是一个URL与视图的映射
+# 当URL的尾数是这个的时候，就会请求这个函数并且将结果返给浏览器
+@app.route('/login/pass/', methods=['POST'])
+def login_pass():
+    # 添加数据到session中
+    data = request.get_json('data')
+    email = data['email']
+    pas = data['password']
+    theuser = user.query.filter_by(email=email, password=pas).first()
+    if theuser is None:
+        return "account not exist"
+    else:
+        session.clear()
+        session['email'] = email
+        session.permanent = True
+        login1 = login(email=email)
+        db.session.add(login1)
+        db.session.commit()
+        return render_template("dataworkshop.html")
+
+
+@app.route('/login/pass/name/', methods=['GET', 'POST'])
+def login_pass_name():
+    name = request.get_json()['name']
+    user1 = user.query.filter_by(username=name).first()
+    if user1 is not None:
+        return "true"
+    else:
+        return "false"
+
+
+# 发送邮件
+def sendmail(to_mail, num):
+    # 邮件外主体
+    smtp = ''
+    smtpserver = "smtp.qq.com"
+    smtpport = 465
+    from_mail = "1361377791@qq.com"
+    password = "ejpulrvmshuyibba"
+    # 邮件内容主体
+    subject = "激活您的Data Workshop账户"
+    from_name = "Data Workshop"
+    body = num + "\n以上是您的验证码，请在五分钟内填写。如非本人操作，请忽略此邮件。\n" \
+                 "Here is your verification code, please fill in within five minutes. " \
+                 "Ignore this message if it is not my operation.\n"
+    msgtext = MIMEText(body, "plain", "utf-8")
+    msg = MIMEMultipart()
+    msg['Subject'] = Header(subject, "utf-8")
+    msg["From"] = Header(from_name + "<" + from_mail + ">", "utf-8")
+    msg["To"] = to_mail
+    msg.attach(msgtext)
+    try:
+        smtp = smtplib.SMTP_SSL(smtpserver, smtpport)
+        smtp.login(from_mail, password)
+        smtp.sendmail(from_mail, to_mail, msg.as_string())
+        smtp.quit()
+        return True
+    except Exception as e:
+        print(e)
+        smtp.quit()
+        return False
+
+
+def mycopyfile(srcfile, dstfile):
+    if not os.path.isfile(srcfile):
+        return False
+    else:
+        fpath, fname = os.path.split(dstfile)
+        if not os.path.exists(fpath):
+            os.makedirs(fpath)
+        shutil.copyfile(srcfile, dstfile)
+        print("copy %s->%s" % (srcfile, dstfile))
+
+
+# 前台传过来的数据都是已经被验证好格式的，传到后台以后只需要进行数据库的比对即可
+# 需要验证的内容为：数据库中是否已经存在该用户。如果存在，那么弹出提示信息
+# 新建一个用户需要完成的内容有：
+# 给该用户的邮箱发送邮件；为该用户在服务器新增一个个人文件夹存储个人信息
+# 由于涉及到文件的路径，管理起来有点麻烦所以暂时先不考虑
+@app.route('/login/signup/', methods=['GET', 'POST'])
+def login_signup():
+    data = request.get_json('data')
+    email = data['email']
+    cur_dir = ".\\static\\user"
+    if os.path.isdir(cur_dir):
+        os.makedirs('.\\static\\user\\' + email)
+        cur_dir = cur_dir + "\\" + email
+        print(cur_dir, "\\img")
+        os.makedirs(cur_dir + "\\img")
+        os.makedirs(cur_dir + "\\code")
+        os.makedirs(cur_dir + "\\report")
+        os.makedirs(cur_dir + "\\olddata")
+        cur_dir = cur_dir + "\\code"
+        os.makedirs(cur_dir + "\\Clean")
+        os.makedirs(cur_dir + "\\Statistic")
+        os.makedirs(cur_dir + "\\Mining")
+        os.makedirs(cur_dir + "\\Visualiztion")
+        srcfile = 'static\\user\\service\\img\\user_img.jpg'
+        dstfiel = 'static\\user\\' + email + '\\img\\user_img.jpg'
+        mycopyfile(srcfile, dstfiel)
+    verify = data['verify']
+    confirm1 = mailconfirm.query.filter_by(email=email, num=verify).first()
+    if confirm1 is not None and confirm1.invalid > datetime.now():  # 首先看验证码是否正确
+        theuser = user.query.filter_by(email=email).first()
+        if theuser is not None:  # 然后看用户是否存在
+            return "email already exist"
+        name = data['username']
+        pas = data['password']
+        typ = data['tp']  # 以数字的形式存储用户权限级别
+        if typ == 'Primary VIP':
+            typ = 1
+        elif typ == 'Intermediate VIP':
+            typ = 2
+        elif typ == 'Senior VIP':
+            typ = 3
+        else:
+            typ = 0
+        user1 = user(email=email, username=name, password=pas, permission=typ)
+        db.session.add(user1)
+        db.session.delete(confirm1)
+        db.session.commit()
+        session['email'] = email
+        session.permanent = True
+        return "success"
+    else:  # 验证码不正确或者已经过期
+        return "Verification code error"
+
+
+# 发送验证码并将验证码存到数据库
+@app.route('/login/verify/', methods=['GET', 'POST'])
+def login_verify():
+    data = request.get_json('data')
+    email = data['email']
+    num = str(random.randint(1000, 9999))
+    send = sendmail(email, num)
+    if send:
+        confirm1 = mailconfirm.query.filter_by(email=email).first()
+        if confirm1 is not None:
+            confirm1.num = num
+            confirm1.invalid = datetime.now() + timedelta(minutes=5)
+        else:
+            conf1 = mailconfirm(email=email, num=num)
+            db.session.add(conf1)
+        db.session.commit()
+        return "success"
+    else:
+        return "fail to send the mail"
+
+
+# 验证验证码，过期或者成功都删除这个验证码
+@app.route('/forget/verify/', methods=['GET', 'POST'])
+def forget_verify():
+    data = request.get_json('data')
+    email = data['email']
+    verify = data['verify']
+    confirm1 = mailconfirm.query.filter_by(email=email, num=verify).first()
+    if confirm1 is not None:
+        db.session.delete(confirm1)
+        db.session.commit()
+        if confirm1.invalid > datetime.now():
+            print("session deleted.")
+            return "success"
+        else:
+            return "false"
+    else:
+        return "false"
+
+
+@app.route('/forget/change/', methods=['GET', 'POST'])
+def forget_change():
+    data = request.get_json('data')
+    email = data['email']
+    password = data['password']
+    print("email")
+    user1 = user.query.filter_by(email=email).first()
+    if user1 is not None:
+        user1.password = password
+        db.session.commit()
+        return "success"
+    else:
+        return "false"
+
+
+@app.route('/user/')
+def user_user():
+    if session.get('email'):
+        email = session.get('email')
+        user1 = user.query.filter_by(email=email).first()
+        if user1 is not None:
+            email = user1.email
+            cur_dir = '.\\static\\user\\' + email
+            print(cur_dir)
+            if os.path.exists(cur_dir):
+                return render_template('user/user.html', user=user1)
+            else:
+                return "Unknown error"
+
+        else:
+            return "404 NOT FOUND"
+    return render_template('login.html')
+
+
+ALLOWED_EXTENSIONS = set(['jpg'])
+
+
+def allowed_file(filename):  # 通过将文件名分段的方式查询文件格式是否在允许上传格式范围之内
+    return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+
+# 下一步，需要将用户的头像进行压缩
+@app.route('/user/change/', methods=['GET', 'POST'])
+def user_change():
+    email = request.form.get('email')
+    name = request.form.get('username')
+    password = request.form.get('password')
+    gender = request.form.get('gender')
+    signature = request.form.get('signature')
+    print("jinlaile ")
+    user1 = user.query.filter_by(email=email).first()
+    if user1 is not None:
+        user1.username = name
+        user1.password = password
+        if gender == 'male':
+            user1.gender = True
+        else:
+            user1.gender = False
+        user1.signature = signature
+        db.session.commit()
+        return "success"
+    else:
+        return "false"
+
+
+@app.route('/user/change/img/', methods=['GET', 'POST'])
+def user_change_img():
+    file = request.files['file']
+    if file and allowed_file(file.filename):
+        old_file = 'static\\user\\' + session.get('email') + '\\img\\user_img.jpg'
+        if os.path.exists(old_file):
+            os.remove(old_file)
+        file.save(old_file)
+        return 'success'
+    else:
+        return "filename invalid or network error"
+
+
+@app.route('/admin/')
+def admin():
+    mananame = request.args.get('manager')
+    return render_template('admin/admin.html', manager=mananame)
+
+
+@app.route('/admin/<id>/')
+def admin_id(id):
+    id = id.replace('<', '')
+    id = id.replace('>', '')
+    return render_template('admin/' + id + '.html')
+
+
+@app.route('/geo/', methods=['GET', 'POST'])
+def geo():
+    global final_data_object
+    if 'province' in final_data_object.keys():
+        if session.get('email'):
+            email = session.get('email')
+            user1 = user.query.filter_by(email=email).first()
+            if user1 is None:
+                return "false"
+            return render_template('geography.html', user=user1, attr=final_data_object['attr'])
+        else:
+            print('data:',final_data_object['data'])
+            print("province",final_data_object['province'])
+            print("attr:",final_data_object['attr'])
+            return render_template('geography.html',attr=final_data_object['attr'])
+    else:
+        final_data = csv.reader(open('./static/user/service/olddata/dist_code.csv'))
+        province = []
+        data = []
+        for i in final_data:
+            province.append(i[0])
+            del i[0]
+            data.append(i)
+        attr = data[0]
+        del province[0]
+        del data[0]
+        final_data_object = {}
+        final_data_object['province'] = province
+        final_data_object['data'] = data
+        final_data_object['attr'] = attr
+
+        return render_template('geography.html', attr=final_data_object['attr'])
+
+@app.route('/geo/get/',methods=['GET','POST'])
+def geo_get():
+    return jsonify(final_data_object)
+
+
+@app.route('/index/geography/', methods=['GET', 'POST'])
+def index_geography():
+    global final_data_object
+    if request.method == 'POST':
+        json_data = request.form.get('json_data')
+        temp = json.loads(json_data)
+        final_data = temp
+        province = []
+        for i in range(1, len(final_data)):
+            province.append(final_data[i][0])
+        for i in final_data:
+            del i[0]
+        attr = final_data[0]
+        del final_data[0]
+        final_data_object = {}
+        final_data_object['province'] = province
+        final_data_object['data'] = final_data
+        final_data_object['attr'] = attr
+        print("province:", province, ",\nattr:", attr, ",\ndata", final_data)
+        return "true"
+    else:
+        return "false"
 
 
 @app.route('/data_workshop', methods=['GET', 'POST'])
 def data_workshop():
-    global source_data
-    global data_frame
-    global dictionary_data
-    global dictionary_data_title
+    global final_data_object
     if request.method == 'POST':
-        source_data = []
-        json_data = request.form.get('d')
+        # initialization
+        final_data_object = {}
+        # get json data
+        json_data = request.form.get('json_data')
         temp = json.loads(json_data)
-        data_frame = temp[0]
+        # get features_list
+        features_list = temp[0]
         del temp[0]
         del temp[-1]
-        for temp_list in temp:
-            sample_list = []
-            for str in temp_list:
-                t = ast.literal_eval(str)
-                sample_list.append(t)
-            source_data.append(sample_list)
-        for l in temp:
-            list_num = []
-            for num in l:
-                list_num.append(num)
-            my_dic = data_list_to_dictionary(data_frame, list_num)
-            dictionary_data.append(my_dic)
-        scatter_title = data_list_to_dictionary(data_frame, data_frame)
-        dictionary_data_title.append(scatter_title)
-    return render_template('index.html')
+        clean_flag = create_differ_type_data(features_list, temp, 1)
+        clean_flag = jsonify(clean_flag)
+        return clean_flag
+    else:
+        return render_template('dataworkshop.html')
 
 
-@app.route('/statistics')
-def statistic():
-    stt = Statistics(source_data, data_frame)
-    mode = stt.mode
-    return render_template('draw_statistics.html', mean=stt.mean, median=stt.median, mode=mode, min=stt.min, max=stt.max,
-                           var=stt.var, cov=stt.cov, frame=data_frame)
+@app.route('/home')
+def home():
+    return render_template('dataworkshop.html',
+                           features_dictionary=final_data_object['features_dictionary'],
+                           no_identifiers_data_list=final_data_object['no_identifiers_data_list'],
+                           no_identifiers_data_list_transform=final_data_object[
+                               'no_identifiers_data_list_transform'],
+                           no_identifiers_data_dictionary=final_data_object['no_identifiers_data_dictionary'],
+                           data_dictionary=final_data_object['data_dictionary'],
+                           data_list=final_data_object['data_list'],
+                           mean=final_data_object['statistics_data']['mean'],
+                           median=final_data_object['statistics_data']['median'],
+                           mode=final_data_object['statistics_data']['mode'],
+                           min=final_data_object['statistics_data']['min'],
+                           max=final_data_object['statistics_data']['max'],
+                           var=final_data_object['statistics_data']['var'],
+                           corr=final_data_object['statistics_data']['corr'],
+                           features_list=final_data_object['features_list'][1:],
+
+                           cluster_embedding_data=final_data_object['cluster_embedding_data'],
+                           n_clusters=final_data_object['n_clusters'],
+                           cluster_method=final_data_object['cluster_method'],
+                           embedding_method=final_data_object['embedding_method'],
+                           attributions_analysis_data=final_data_object['attributions_analysis_data'],
+                           anomaly_detection_data=final_data_object['anomaly_detection_data'],
+                           visualization_method=final_data_object['visualization_method'])
 
 
-@app.route('/cluster_projection')
-def cluster_projection():
-    n_clusters = 3
-    model = MyKmeans()
-    clustering = model.fit(source_data, n_clusters)
-    labels = clustering.labels_
-    labels = labels.tolist()
+@app.route('/mining/attribution_analysis', methods=['POST', 'GET'])
+def attribution_analysis():
+    return render_template('dataworkshop.html')
+
+
+@app.route('/mining/cluster', methods=['POST', 'GET'])
+def mining_cluster():
+    global final_data_object
+    parameters = {}
+    for key in request.get_json():
+        if key != 'Cluster method':  # 要保证参数数组里面只有参数，没有方法名
+            parameters[key] = request.get_json()[key]
+        else:
+            final_data_object['cluster_method'] = request.get_json()[key]
+
+    parameters['data'] = final_data_object['no_identifiers_data_list']  # 用户输入的数据csv
+    result = getattr(ClusterWay(), final_data_object['cluster_method'])(parameters)
+    clustering = result['clustering']
+    if result.get('labels') is None:
+        initial_labels = clustering.labels_
+    else:
+        initial_labels = result.get('labels')
+    labels = initial_labels.tolist()
+    final_data_object['n_clusters'] = np.unique(labels).size
+
+    embedding = getattr(ProjectionWay(), final_data_object['embedding_method'])(final_data_object['no_identifiers_data_list'])
+    samples, features = embedding['data'].shape
+    data_embedding = embedding['data'].tolist()
+    for i in range(samples):
+        lll = labels[i]
+        data_embedding[i].append(lll)
+    final_data_object['cluster_embedding_data'] = data_embedding
+
+    return render_template('dataworkshop.html',
+                           features_dictionary=final_data_object['features_dictionary'],
+                           no_identifiers_data_list=final_data_object['no_identifiers_data_list'],
+                           no_identifiers_data_list_transform=final_data_object[
+                               'no_identifiers_data_list_transform'],
+                           no_identifiers_data_dictionary=final_data_object['no_identifiers_data_dictionary'],
+                           data_dictionary=final_data_object['data_dictionary'],
+                           data_list=final_data_object['data_list'],
+                           mean=final_data_object['statistics_data']['mean'],
+                           median=final_data_object['statistics_data']['median'],
+                           mode=final_data_object['statistics_data']['mode'],
+                           min=final_data_object['statistics_data']['min'],
+                           max=final_data_object['statistics_data']['max'],
+                           var=final_data_object['statistics_data']['var'],
+                           corr=final_data_object['statistics_data']['corr'],
+                           features_list=final_data_object['features_list'][1:],
+
+                           cluster_embedding_data=final_data_object['cluster_embedding_data'],
+                           n_clusters=final_data_object['n_clusters'],
+                           cluster_method=final_data_object['cluster_method'],
+                           embedding_method=final_data_object['embedding_method'],
+                           attributions_analysis_data=final_data_object['attributions_analysis_data'],
+                           anomaly_detection_data=final_data_object['anomaly_detection_data'],
+                           visualization_method=final_data_object['visualization_method'])
+
+
+@app.route('/mining/embedding', methods=['POST', 'GET'])
+def mining_embedding():
+    global final_data_object
+    parameters = {}
+    parameters['data'] = final_data_object['no_identifiers_data_list']  # 用户输入的数据csv
+    result = getattr(ClusterWay(), final_data_object['cluster_method'])(parameters)
+    clustering = result['clustering']
+    if result.get('labels') is None:
+        initial_labels = clustering.labels_
+    else:
+        initial_labels = result.get('labels')
+    labels = initial_labels.tolist()
+    final_data_object['n_clusters'] = np.unique(labels).size
+
+    print("before:",final_data_object['embedding_method'])
+    final_data_object['embedding_method']=request.get_json()['embedding_method']
+    print('after',final_data_object['embedding_method'])
+    embedding = getattr(ProjectionWay(), final_data_object['embedding_method'])(final_data_object['no_identifiers_data_list'])
+    samples, features = embedding['data'].shape
+    data_embedding = embedding['data'].tolist()
+    for i in range(samples):
+        lll = labels[i]
+        data_embedding[i].append(lll)
+    final_data_object['cluster_embedding_data'] = data_embedding
+
+    return render_template('dataworkshop.html',
+                           features_dictionary=final_data_object['features_dictionary'],
+                           no_identifiers_data_list=final_data_object['no_identifiers_data_list'],
+                           no_identifiers_data_list_transform=final_data_object[
+                               'no_identifiers_data_list_transform'],
+                           no_identifiers_data_dictionary=final_data_object['no_identifiers_data_dictionary'],
+                           data_dictionary=final_data_object['data_dictionary'],
+                           data_list=final_data_object['data_list'],
+                           mean=final_data_object['statistics_data']['mean'],
+                           median=final_data_object['statistics_data']['median'],
+                           mode=final_data_object['statistics_data']['mode'],
+                           min=final_data_object['statistics_data']['min'],
+                           max=final_data_object['statistics_data']['max'],
+                           var=final_data_object['statistics_data']['var'],
+                           corr=final_data_object['statistics_data']['corr'],
+                           features_list=final_data_object['features_list'][1:],
+
+                           cluster_embedding_data=final_data_object['cluster_embedding_data'],
+                           n_clusters=final_data_object['n_clusters'],
+                           cluster_method=final_data_object['cluster_method'],
+                           embedding_method=final_data_object['embedding_method'],
+                           attributions_analysis_data=final_data_object['attributions_analysis_data'],
+                           anomaly_detection_data=final_data_object['anomaly_detection_data'],
+                           visualization_method=final_data_object['visualization_method'])
+
+
+@app.route('/mining/anomaly_detection', methods=['POST', 'GET'])
+def anomaly_detection():
+    return render_template('dataworkshop.html')
+
+
+@app.route('/mining/classification', methods=['POST', 'GET'])
+def classification():
+    return render_template('dataworkshop.html')
+
+
+@app.route('/mining/regression', methods=['POST', 'GET'])
+def regression():
+    return render_template('dataworkshop.html')
+
+
+@app.route('/cluster')
+def cluster():
+    if session.get('email'):
+        email = session.get('email')
+        user1 = user.query.filter_by(email=email).first()
+        if user1 is None:
+            return "false"
+        return render_template('cluster_2.html', user=user1)
+    else:
+        return render_template('cluster_2.html')
+
+
+@app.route('/cluster/cluster_way',methods=['POST', 'GET'])
+def cluster_way():
+    parameters = {}
+    draw_id = str(request.get_json()['draw_id'])
+    body = 'page-top' + draw_id
+    node_id = ['name' + draw_id, 'cluster' + draw_id, 'data_obj' + draw_id, 'method' + draw_id]
+    if request.get_json()['exist'] != 'none':
+        for key in request.get_json():
+            if key!='cluster_method':#要保证参数数组里面只有参数，没有方法名
+                parameters[key] = request.get_json()[key]
+        # n_clusters = int(request.get_json()['cluster'])
+        # use_method = int(request.get_json()['method'])
+    parameters['data'] = final_data_object['no_identifiers_data_list']#用户输入的数据csv
+
+    cluster_method=request.get_json()['cluster_method']
+    result = getattr(ClusterWay(), cluster_method)(parameters)
+    clustering=result['clustering']
+    if result.get('labels') is None:
+        initial_labels = clustering.labels_
+    else:
+        initial_labels = result.get('labels')
+    labels = initial_labels.tolist()
     clusters = np.unique(labels).size
-    pca = MyPCA(source_data)
-    data_pca = pca.return_data
+
+    pca = getattr(ProjectionWay(), final_data_object['embedding_method'])(final_data_object['no_identifiers_data_list'])
+    data_pca = pca['data']
     samples, features = data_pca.shape
     data_pca = data_pca.tolist()
     for i in range(samples):
-        data_pca[i].append(labels[i])
-    return render_template('draw_cluster_projection.html', data=data_pca, data_obj=dictionary_data, clusters=clusters, method='KMeans')
+        lll = labels[i]
+        data_pca[i].append(lll)
+
+    this_html=render_template("cluster.html", data=data_pca, data_obj=final_data_object['data_dictionary'], clusters=clusters,
+                           method=cluster_method + draw_id, body_id=body, body_draw_id=node_id)
+    return this_html
 
 
-@app.route('/visualization', methods=['POST', 'GET'])
-def upload_visualization():
-    return render_template("draw_visualization.html", data=dictionary_data, title=data_frame, data_obj= dictionary_data, method='Radviz')
+@app.route('/cluster/cluster_way_evaluation', methods=['POST', 'GET'])
+def cluster_way_evaluation():  # 需要的参数是各个图所展示出来的聚类方法以及他们对应的参数
+    # 返回的结果是聚类方法：聚类的评价值的键值对
+    result = []
+    evaluation_way = request.get_json()[0]
+    result.append(evaluation_way)
+    for count in range(len(request.get_json())):
+        if count == 0:
+            continue
+        cluster_way = request.get_json()[count]
+        print(cluster_way)
+        cluster_way['data'] = final_data_object['no_identifiers_data_list']
+        print(cluster_way['Cluster method'])
+        cluster_result = {}
+        if cluster_way['Cluster method'] == 'User_cluster':
+            cluster_result['labels'] = final_data_object['user_labels']
+        else:
+            cluster_result = getattr(ClusterWay(), cluster_way['Cluster method'])(cluster_way)
+            clustering = cluster_result['clustering']
+        if cluster_result.get('labels') is None:
+            initial_labels = clustering.labels_
+        else:
+            initial_labels = cluster_result.get('labels')
+        try:
+            score = getattr(EvaluationWay(), evaluation_way)(final_data_object['no_identifiers_data_list'],
+                                                             initial_labels)
+        except ValueError as e:
+            score = 0
+        result.append(str(score))
+    result_str = ':'.join(result)
+    return result_str
+
+@app.route('/embedding')
+def projection():
+    if session.get('email'):
+        email = session.get('email')
+        user1 = user.query.filter_by(email=email).first()
+        if user1 is None:
+            return "false"
+        return render_template('projection_2.html', user=user1)
+    else:
+        return render_template('projection_2.html')
+
+
+@app.route('/projection/projection_way', methods=['POST', 'GET'])
+def projection_way():
+    draw_id = str(request.get_json()['draw_id'])
+    projection_method = str(request.get_json()['projection_method'])
+    data_params = getattr(ProjectionWay(), projection_method)(final_data_object['no_identifiers_data_list'])
+    projection_data = data_params['data'].tolist()
+    print(data_params['params'])
+    return render_template("projection.html", data=projection_data, data_obj=final_data_object['data_dictionary'],
+                           method=projection_method + draw_id)
+
+
+@app.route('/User_code', methods=['POST', 'GET'])
+def User_code():
+    global upload_path
+    if request.method == 'POST':
+        f = request.files['file']
+
+        basepath = os.path.dirname(__file__) + '\\static\\user\\' + session.get('email') + "\\user_code"  # 文件所要放入的路径
+
+        # upload_path = os.path.join(basepath, '', secure_filename('User_cluster.zip'))
+        if (request.form.get('label') == 'zip'):
+            filename = basepath + '\\User_embedding.zip'  # 要解压的文件
+            filedir = basepath  # 解压后放入的目录
+            # 如果他是压缩文件，就对它进行解压，不是的话就不进行操作
+            f.save(basepath + '\\User_embedding.zip')
+            fz = zipfile.ZipFile(filename, 'r')
+            for file in fz.namelist():
+                # print(file)  # 打印zip归档中目录
+                fz.extract(file, filedir)
+        else:
+            f.save(basepath+'\\User_projection.py');
+        return redirect(url_for('User_code'))
+    return 'upload the embedding code file successfully !'
+
+
+@app.route('/projection/User_method', methods=['POST', 'GET'])
+def User_method():
+    draw_id = str(request.get_json()['draw_id'])
+    file_object = open('User_projection.py')
+    try:
+        code = file_object.read()
+        codeOut = StringIO()
+        codeErr = StringIO()
+        sys.stdout = codeOut
+        sys.stderr = codeErr
+        exec(code)
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+        s = codeOut.getvalue()
+        codeOut.close()
+        codeErr.close()
+    finally:
+        file_object.close()
+        #os.remove('User_code.py')
+    return render_template("projection.html", data=User_data, data_obj=final_data_object['data_dictionary'],
+                           method='User_method' + draw_id)
+
+
+@app.route('/cluster_code', methods=['POST', 'GET'])
+def cluster_code():
+    if request.method == 'POST':
+        f = request.files['file']
+        basepath = os.path.dirname(__file__)+'\\static\\user\\'+session.get('email')+"\\user_code"  # 文件所要放入的路径
+
+        #upload_path = os.path.join(basepath, '', secure_filename('User_cluster.zip'))
+        if(request.form.get('label')=='zip'):
+            filename = basepath+'\\User_cluster.zip'  # 要解压的文件
+            filedir =basepath   # 解压后放入的目录
+            #如果他是压缩文件，就对它进行解压，不是的话就不进行操作
+            f.save(basepath + '\\User_cluster.zip')
+            fz = zipfile.ZipFile(filename, 'r')
+            for file in fz.namelist():
+                #print(file)  # 打印zip归档中目录
+                fz.extract(file, filedir)
+        if (request.form.get('label') == 'py'):
+            f.save(basepath + '\\User_cluster.py')
+        return redirect(url_for('cluster_code'))
+    return 'upload the cluster code file successfully !'
+
+
+@app.route('/cluster/User_cluster', methods=['POST', 'GET'])
+def User_cluster():
+    # 首先修改当前的工作路径，执行完程序后改回原来的工作路径
+    current_path = os.getcwd()
+    os.chdir(os.path.dirname(__file__)+'\\static\\user\\'+session.get('email')+"\\user_code")  # 切换成用户代码的路径
+
+    draw_id = str(request.get_json()['draw_id'])
+    body = 'page-top' + draw_id
+    node_id = ['name' + draw_id, 'cluster' + draw_id, 'data_obj' + draw_id, 'method' + draw_id]
+    file_object = open('User_cluster.py')
+    try:
+        code = file_object.read()
+        codeOut = StringIO()
+        codeErr = StringIO()
+        sys.stdout = codeOut
+        sys.stderr = codeErr
+        exec(code)
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+        s = codeOut.getvalue()
+        codeOut.close()
+        codeErr.close()
+    finally:
+        global final_data_object
+        pca = getattr(ProjectionWay(), final_data_object['embedding_method'])(
+            final_data_object['no_identifiers_data_list'])
+        data_pca = pca['data']
+        samples, features = data_pca.shape
+        data_pca = data_pca.tolist()
+
+        for i in range(samples):
+            data_pca[i].append(labels[i])
+        final_data_object['user_labels'] = labels
+        file_object.close()
+    os.chdir(current_path)  # 切换回原来的工作路径
+    return render_template("cluster.html", data=data_pca, data_obj=final_data_object['data_dictionary'],
+                           method='User_cluster' + draw_id, body_id=body, body_draw_id=node_id, )
+
+
+@app.route('/clean', methods=['POST', 'GET'])
+def clean():
+    return render_template("clean.html")
+
+
+@app.route('/clean_table', methods=['POST', 'GET'])
+def clean_table():
+    source_arr = np.mat(final_data_object['data_list'])
+    data_transform = source_arr.T
+    data_list_transform = data_transform.tolist()
+    return render_template("clean_table.html",data=final_data_object['data_list'],frame=final_data_object['features_list'],data_list=data_list_transform)
+
+
+@app.route('/cluster/save_user_way',methods=['POST','GET'])
+def save_user_way():
+    if request.method=='POST':
+        name = request.form.get('user_cluster_name')
+        role=request.form.get('role')
+        print(name)
+        print(role)
+        return 'save your cluster way successfully! '
 
