@@ -2,7 +2,7 @@ from datetime import timedelta, datetime
 import os,shutil
 import smtplib
 import csv
-from model import user, db, login, mailconfirm, methoduse
+# from model import user, db, login, mailconfirm, methoduse
 import os, shutil
 import smtplib
 from email.mime.text import MIMEText
@@ -18,16 +18,26 @@ from statistics import Statistics
 from projection import ProjectionWay
 from cluster import ClusterWay, EvaluationWay
 from anomaly import AnonalyMethod
+from regression import fitSLR
 import sys
 from io import StringIO
 from werkzeug.utils import secure_filename
 import zipfile
 
+#用于文字识别
+# from PIL import Image
+# import pytesseract
+#用于文字识别
+
+
 app = Flask(__name__)
+
+# app.run('127.0.0.1', debug=True, port=5000, ssl_context=('D:\OpenSSL-Win64\bin\server.crt', 'D:\OpenSSL-Win64\bin\server.key'))
 # 用于加密，作为盐混在原始的字符串中，然后用加密算法进行加密
 app.config['SECRET_KEY'] = os.urandom(24)
 # 设定session的保存时间，当session.permanent=True的时候
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+
 
 global final_data_object
 final_data_object = {}
@@ -151,6 +161,7 @@ def create_differ_type_data(fea_list, da_list, type):
         final_data_object['no_identifiers_data_list_transform'])
     samples, features = embedding['data'].shape
     data_embedding = embedding['data'].tolist()
+    final_data_object['regression_data'] = fitSLR(data_embedding)
     for i in range(samples):
         lll = labels[i]
         data_embedding[i].append(lll)
@@ -180,32 +191,9 @@ def index():
         email=session.get('email')
         user1=user.query.filter_by(email=email).first()
         print(user1)
-        return render_template('dataworkshop.html', user=user1)
+        return render_template('datagoo_homepage.html', user=user1)
     else:
-        return render_template('dataworkshop.html',
-                               features_dictionary=final_data_object['features_dictionary'],
-                               no_identifiers_data_list=final_data_object['no_identifiers_data_list'],
-                               no_identifiers_data_list_transform=final_data_object[
-                                   'no_identifiers_data_list_transform'],
-                               no_identifiers_data_dictionary=final_data_object['no_identifiers_data_dictionary'],
-                               data_dictionary=final_data_object['data_dictionary'],
-                               data_list=final_data_object['data_list'],
-                               mean=final_data_object['statistics_data']['mean'],
-                               median=final_data_object['statistics_data']['median'],
-                               mode=final_data_object['statistics_data']['mode'],
-                               min=final_data_object['statistics_data']['min'],
-                               max=final_data_object['statistics_data']['max'],
-                               var=final_data_object['statistics_data']['var'],
-                               corr=final_data_object['statistics_data']['corr'],
-                               features_list=final_data_object['features_list'][1:],
-
-                               cluster_embedding_data=final_data_object['cluster_embedding_data'],
-                               n_clusters=final_data_object['n_clusters'],
-                               cluster_method=final_data_object['cluster_method'],
-                               embedding_method=final_data_object['embedding_method'],
-                               attributions_analysis_data=final_data_object['attributions_analysis_data'],
-                               anomaly_detection_data=final_data_object['anomaly_detection_data'],
-                               visualization_method=final_data_object['visualization_method'])
+        return render_template('datagoo_homepage.html')
 
 
 @app.route('/login/', methods=['GET', 'POST'])
@@ -232,7 +220,7 @@ def login_pass():
         login1 = login(email=email)
         db.session.add(login1)
         db.session.commit()
-        return render_template("dataworkshop.html")
+        return render_template("datagoo_homepage.html")
 
 
 @app.route('/login/pass/name/', methods=['GET', 'POST'])
@@ -503,12 +491,31 @@ def geo():
         final_data_object['province'] = province
         final_data_object['data'] = data
         final_data_object['attr'] = attr
+        if session.get('email'):
+            email = session.get('email')
+            user1 = user.query.filter_by(email=email).first()
+            if user1 is None:
+                return "false"
+            return render_template('geography.html', user=user1, attr=final_data_object['attr'])
+        else:
+            return render_template('geography.html', attr=final_data_object['attr'])
 
-        return render_template('geography.html', attr=final_data_object['attr'])
 
 @app.route('/geo/get/',methods=['GET','POST'])
 def geo_get():
     return jsonify(final_data_object)
+
+
+@app.route('/geo/point/',methods=['GET','POST'])
+def geo_point():
+    if session.get('email'):
+        email = session.get('email')
+        user1 = user.query.filter_by(email=email).first()
+        if user1 is None:
+            return "false"
+        return render_template('geo2.html', user=user1)
+    else:
+        return render_template('geo2.html')
 
 
 @app.route('/index/geography/', methods=['GET', 'POST'])
@@ -535,6 +542,41 @@ def index_geography():
         return "false"
 
 
+@app.route('/text_upload', methods=['GET', 'POST'])
+def text_upload():
+    global final_data_object
+    clean_flag = False
+    if request.method == 'POST':
+        # initialization
+        try:
+            final_data_object = {}
+            # get json data
+            json_data = request.form.get('json_data')
+            temp = json.loads(json_data)
+            del temp[0]
+            del temp[-1]
+            text_no_identifiers_data_dictionary = []
+            features_list = ['source', 'target', 'rela']
+            for i in range(len(temp)):
+                l = temp[i]
+                list_num = []
+                for num in l:
+                    list_num.append(num)
+                my_dic = data_list_to_dictionary(features_list, list_num)
+                text_no_identifiers_data_dictionary.append(my_dic)
+            final_data_object['text_no_identifiers_data_dictionary'] = text_no_identifiers_data_dictionary
+            clean_flag = True
+        except:
+            clean_flag = False
+    clean_flag = jsonify(clean_flag)
+    return clean_flag
+
+
+@app.route('/text_home', methods=['GET', 'POST'])
+def text_home():
+    return render_template('draw_text.html', text_data=final_data_object['text_no_identifiers_data_dictionary'])
+
+
 @app.route('/data_workshop', methods=['GET', 'POST'])
 def data_workshop():
     global final_data_object
@@ -552,12 +594,12 @@ def data_workshop():
         clean_flag = jsonify(clean_flag)
         return clean_flag
     else:
-        return render_template('dataworkshop.html')
+        return render_template('datagoo_homepage.html')
 
 
 @app.route('/home')
 def home():
-    return render_template('dataworkshop.html',
+    return render_template('tablegoo_homepage.html',
                            features_dictionary=final_data_object['features_dictionary'],
                            no_identifiers_data_list=final_data_object['no_identifiers_data_list'],
                            no_identifiers_data_list_transform=final_data_object[
@@ -580,12 +622,13 @@ def home():
                            embedding_method=final_data_object['embedding_method'],
                            attributions_analysis_data=final_data_object['attributions_analysis_data'],
                            anomaly_detection_data=final_data_object['anomaly_detection_data'],
+                           regression_data=final_data_object['regression_data'],
                            visualization_method=final_data_object['visualization_method'])
 
 
 @app.route('/mining/attribution_analysis', methods=['POST', 'GET'])
 def attribution_analysis():
-    return render_template('dataworkshop.html')
+    return render_template('tablegoo_homepage.html')
 
 
 @app.route('/mining/cluster', methods=['POST', 'GET'])
@@ -616,7 +659,7 @@ def mining_cluster():
         data_embedding[i].append(lll)
     final_data_object['cluster_embedding_data'] = data_embedding
 
-    return render_template('dataworkshop.html',
+    return render_template('tablegoo_homepage.html',
                            features_dictionary=final_data_object['features_dictionary'],
                            no_identifiers_data_list=final_data_object['no_identifiers_data_list'],
                            no_identifiers_data_list_transform=final_data_object[
@@ -639,6 +682,7 @@ def mining_cluster():
                            embedding_method=final_data_object['embedding_method'],
                            attributions_analysis_data=final_data_object['attributions_analysis_data'],
                            anomaly_detection_data=final_data_object['anomaly_detection_data'],
+                           regression_data=final_data_object['regression_data'],
                            visualization_method=final_data_object['visualization_method'])
 
 
@@ -667,7 +711,7 @@ def mining_embedding():
         data_embedding[i].append(lll)
     final_data_object['cluster_embedding_data'] = data_embedding
 
-    return render_template('dataworkshop.html',
+    return render_template('tablegoo_homepage.html',
                            features_dictionary=final_data_object['features_dictionary'],
                            no_identifiers_data_list=final_data_object['no_identifiers_data_list'],
                            no_identifiers_data_list_transform=final_data_object[
@@ -690,22 +734,23 @@ def mining_embedding():
                            embedding_method=final_data_object['embedding_method'],
                            attributions_analysis_data=final_data_object['attributions_analysis_data'],
                            anomaly_detection_data=final_data_object['anomaly_detection_data'],
+                           regression_data=final_data_object['regression_data'],
                            visualization_method=final_data_object['visualization_method'])
 
 
 @app.route('/mining/anomaly_detection', methods=['POST', 'GET'])
 def anomaly_detection():
-    return render_template('dataworkshop.html')
+    return render_template('tablegoo_homepage.html')
 
 
 @app.route('/mining/classification', methods=['POST', 'GET'])
 def classification():
-    return render_template('dataworkshop.html')
+    return render_template('tablegoo_homepage.html')
 
 
 @app.route('/mining/regression', methods=['POST', 'GET'])
 def regression():
-    return render_template('dataworkshop.html')
+    return render_template('tablegoo_homepage.html')
 
 
 @app.route('/cluster')
@@ -788,6 +833,7 @@ def cluster_way_evaluation():  # 需要的参数是各个图所展示出来的�
         result.append(str(score))
     result_str = ':'.join(result)
     return result_str
+
 
 @app.route('/embedding')
 def projection():
@@ -925,6 +971,11 @@ def clean():
     return render_template("clean.html")
 
 
+@app.route('/products', methods=['POST', 'GET'])
+def products():
+    return render_template("products.html")
+
+
 @app.route('/clean_table', methods=['POST', 'GET'])
 def clean_table():
     source_arr = np.mat(final_data_object['data_list'])
@@ -942,3 +993,35 @@ def save_user_way():
         print(role)
         return 'save your cluster way successfully! '
 
+
+@app.route('/OCR', methods=['POST', 'GET'])
+def OCR():
+    # text=pytesseract.image_to_string(Image.open('show.jpg'),lang='chi_sim') #设置为中文文字的识别
+    if request.method == 'POST':
+        f = request.files['file']
+        filename=f.filename
+        base_path = os.path.dirname(__file__) + '\\static\\user\\' + session.get('email') + "\\img"# 当前文件所在路径
+        upload_path = os.path.join(base_path, '', secure_filename(filename))
+        f.save(upload_path)
+        #C:\Users\Administrator\DataA\static\user\1361377791@qq.com\img
+        text = pytesseract.image_to_string(Image.open(upload_path), lang='eng')  # 设置为英文或阿拉伯字母的识别
+        result=text.replace('\n', ' ')
+        print(result)
+        return 'success!'
+    #return render_template("draw_text.html",result=result)
+    '''
+     if(filename.find('.pdf')):
+            from wand.image import Image as wand_Image
+            filename=filename.replace('.pdf', '.jpg')
+            print(filename)
+            image_jpg=wand_Image(filename=upload_path,resolution=300).convert('jpg')
+            upload_path = os.path.join(base_path, '', secure_filename(filename))
+            print(upload_path)
+            image_jpg.save(upload_path)
+    '''
+
+
+''''''
+if __name__ == '__main__':
+    app.run(debug=True,
+            ssl_context=('certs/server.crt', 'certs/server.key'))

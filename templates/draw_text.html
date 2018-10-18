@@ -1,0 +1,883 @@
+<head>
+    <meta charset="UTF-8">
+   <script type="text/javascript" src="../static/js/jquery-1.9.0.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.4/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.4/js/select2.min.js"></script>
+    <script src="../static/js/bootstrap.bundle.min.js"></script>
+    <script src="../static/js/jschardet.min.js"></script>
+    <script src="../static/js/d3.vs.min.js"></script>
+   <link href="../static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../static/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="../static/css/dataTables.bootstrap4.css" rel="stylesheet">
+    <link href="../static/css/sb-admin.css" rel="stylesheet">
+     <link rel="stylesheet" href="../static/css/bootstrap.css">
+    <title>Text Graph</title>
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DaGoo</title>
+    <meta name="description" content="">
+    <meta name="author" content="">
+{#   <link rel="stylesheet" type="text/css"  href="../static/css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="../static/fonts/font-awesome/css/font-awesome.css">
+    <link rel="stylesheet" type="text/css"  href="../static/css/style.css">
+    <link rel="stylesheet" type="text/css" href="../static/css/nivo-lightbox/nivo-lightbox.css">
+    <link rel="stylesheet" type="text/css" href="../static/css/nivo-lightbox/default.css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,900" rel="stylesheet">#}{#
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+</head>#}
+</head>
+    <style>
+  body {
+  position: relative;
+  font-family: "Helvetica Neue", sans-serif;
+  width: auto;
+  margin-bottom: 1em;
+  margin-left: 0px;
+}
+#presets a { border-left: solid #666 1px; padding: 0 10px; }
+#presets a.first { border-left: none; }
+#keyword { width: 300px; }
+#fetcher { width: 500px; }
+#keyword, #go { font-size: 1.5em; }
+#text { width: 85%; height: 100px; }
+p.copy { font-size: small; }
+#form { font-size: small; position: relative; }
+hr { border: none; border-bottom: solid #ccc 1px; }
+a.active { text-decoration: none; color: #000; font-weight: bold; cursor: text; }
+#angles line, #angles path, #angles circle { stroke: #666; }
+#angles text { fill: #333; }
+#angles path.drag { fill: #666; cursor: move; }
+#angles { text-align: center; margin: 0 auto; width: 350px; }
+#angles input, #max { width: 42px; }
+        a {
+  cursor:pointer;
+}
+</style>
+
+<style>
+.link {
+  fill: none;
+  stroke: #666;
+  stroke-width: 1.5px;
+}
+
+#licensing {
+  fill: green;
+}
+
+.link.licensing {
+  stroke: green;
+}
+
+.link.resolved {
+  stroke-dasharray: 0,2 1;
+}
+
+circle {
+  fill: #ccc;
+  stroke: #333;
+  stroke-width: 1.5px;
+}
+
+text {
+  font: 12px Microsoft YaHei;
+  pointer-events: none;
+  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+}
+
+.linetext {
+    font-size: 12px;
+}
+a {
+  cursor:pointer;
+}
+    .navbar navbar-default{background: #2f3638}
+</style>
+<style>#menu.navbar-default {
+    width: auto;
+    height: 70px;
+    margin-left: 0px;
+    padding-left: 0px;
+      margin-bottom: 1em;
+    background-color: black;
+    color: white;
+    border-color: rgba(231, 231, 231, 0);
+}
+
+
+#menu a.navbar-brand {
+      margin-left: 0px;
+    padding-left: 0px;
+    font-size: 22px;
+    color: #eee;
+    font-weight: 400;
+    text-transform: capitalize;
+    letter-spacing: 1px;
+}
+</style>
+<body>
+    <nav id="menu" class="navbar navbar-default">
+         <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar"></span> <span class="icon-bar"></span> <span class="icon-bar"></span> </button>
+            <a class="navbar-brand pfage-scroll" href="#page-top">DaGoo</a>
+        </div>
+
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            <ul class="nav navbar-nav navbar-left">
+                 <li><a href="/"  class="smoothScroll">Home</a></li>
+                <li><a href="/text_home"  class="smoothScroll">Word Cloud</a></li>
+                <li><a onclick="draw_konwledge()"  class="smoothScroll">Knowledge Graph</a></li>
+
+            </ul>
+        </div>
+  </div>
+    </nav>
+    <div id="to_display" style="display: inline">
+{#    <input class="button_blue" id="file_path" name="file_path" type="button"
+                           onclick="path.click()" value="File Upload">
+    <input type="file" id="path" style="display:none" name="csvfile"
+                           onchange="file_path.value=this.value">
+    <input class="button_blue" type="button" onclick="read_file()" value="Submit">#}
+    <div id="vis"></div>
+
+    <form id="form">
+
+        <p style="position: absolute; right: 0px; top: 0px; display: none;" id="status">1/1</p>
+
+        <div style="text-align: center">
+            <div id="presets"></div>
+            <div id="custom-area">
+                <p><label for="text"></label>
+                </p>
+                <p><textarea id="text">
+How the Word Cloud Generator Works
+The layout algorithm for positioning words without overlap is available on GitHub under an open source license as d3-cloud. Note that this is the only the layout algorithm and any code for converting text into words and rendering the final output requires additional development.
+As word placement can be quite slow for more than a few hundred words, the layout algorithm can be run asynchronously, with a configurable time step size. This makes it possible to animate words as they are placed without stuttering. It is recommended to always use a time step even without animations as it prevents the browser’s event loop from blocking while placing the words.
+The layout algorithm itself is incredibly simple. For each word, starting with the most “important”:
+Attempt to place the word at some starting point: usually near the middle, or somewhere on a central horizontal line.
+If the word intersects with any previously placed words, move it one step along an increasing spiral. Repeat until no intersections are found.
+The hard part is making it perform efficiently! According to Jonathan Feinberg, Wordle uses a combination of hierarchical bounding boxes and quadtrees to achieve reasonable speeds.
+Glyphs in JavaScript
+There isn’t a way to retrieve precise glyph shapes via the DOM, except perhaps for SVG fonts. Instead, we draw each word to a hidden canvas element, and retrieve the pixel data.
+Retrieving the pixel data separately for each word is expensive, so we draw as many words as possible and then retrieve their pixels in a batch operation.
+Sprites and Masks
+My initial implementation performed collision detection using sprite masks. Once a word is placed, it doesn't move, so we can copy it to the appropriate position in a larger sprite representing the whole placement area.
+The advantage of this is that collision detection only involves comparing a candidate sprite with the relevant area of this larger sprite, rather than comparing with each previous word separately.
+Somewhat surprisingly, a simple low-level hack made a tremendous difference: when constructing the sprite I compressed blocks of 32 1-bit pixels into 32-bit integers, thus reducing the number of checks (and memory) by 32 times.
+In fact, this turned out to beat my hierarchical bounding box with quadtree implementation on everything I tried it on (even very large areas and font sizes). I think this is primarily because the sprite version only needs to perform a single collision test per candidate area, whereas the bounding box version has to compare with every other previously placed word that overlaps slightly with the candidate area.
+Another possibility would be to merge a word’s tree with a single large tree once it is placed. I think this operation would be fairly expensive though compared with the analagous sprite mask operation, which is essentially ORing a whole block.
+
+                </textarea>
+                    <button id="go" type="submit">Start!</button>
+                </p>
+            </div>
+        </div>
+
+        <hr>
+
+        <div style="float: right; text-align: right">
+            <div style="display: none">
+            <p><label for="max">Number of words:</label> <input type="number" value="250" min="1" id="max">
+            </p>
+            <p><label for="per-line"><input type="checkbox" id="per-line"> One word per line</label>
+                <!--<p><label for="colours">Colours:</label> <a href="#" id="random-palette">get random palette</a>-->
+            </p></div>
+            <p><label>Download:</label>
+                <button id="download-svg">SVG</button>
+                <!--  <a id="download-png" href="#">PNG</a> -->
+            </p>
+        </div>
+
+        <div style="float: left ;display:none">
+            <p><label>Spiral:</label>
+                <label for="archimedean"><input type="radio" name="spiral" id="archimedean" value="archimedean" checked="checked"> Archimedean</label>
+                <label for="rectangular"><input type="radio" name="spiral" id="rectangular" value="rectangular"> Rectangular</label>
+            </p>
+            <p><label for="scale">Scale:</label>
+                <label for="scale-log"><input type="radio" name="scale" id="scale-log" value="log" checked="checked"> log n</label>
+                <label for="scale-sqrt"><input type="radio" name="scale" id="scale-sqrt" value="sqrt"> √n</label>
+                <label for="scale-linear"><input type="radio" name="scale" id="scale-linear" value="linear"> n</label>
+            </p>
+            <p><label for="font">Font:</label> <input type="text" id="font" value="Impact">
+            </p>
+        </div>
+
+        <div id="angles">
+            <p><input type="number" id="angle-count" value="5" min="1"> <label for="angle-count">orientations</label>
+                <label for="angle-from">from</label> <input type="number" id="angle-from" value="-60" min="-90" max="90"> °
+                <label for="angle-to">to</label> <input type="number" id="angle-to" value="60" min="-90" max="90"> °
+            </p>
+        </div>
+
+    </form>
+
+</div>
+    <script src="../static/js/d3.v3.min.js"></script>
+    <script>function read_file() {
+        var file_name=$("input[name=csvfile]").val();
+    if (file_name.lastIndexOf(".")!=-1){
+var fileType = (file_name.substring(file_name.lastIndexOf(".")+1,file_name.length)).toLowerCase();
+
+    if((fileType=='jpg')||(fileType=='jpeg')||(fileType=='png')||(fileType=='pdf'))
+    {
+        var fd=new FormData();
+
+fd.append("file",document.getElementsByName('csvfile')[0].files[0]);//这是获取上传的文件
+
+    var xhr=new XMLHttpRequest();
+    xhr.open("POST","/OCR");//要传到后台方法的路径
+    xhr.addEventListener("load",uploadComplete,false);
+xhr.send(fd);
+    }
+    }
+    }
+    </script>
+    <!-- <script src="./Word Cloud Generator_files/cloud.min.js"></script> -->
+    <script type="text/javascript">
+        function flatten(t, e) {
+            if ("string" == typeof t) return t;
+            var n = [];
+            for (e in t) {
+                var a = flatten(t[e], e);
+                a && n.push(a)
+            }
+            return n.join(" ")
+        }
+
+        function parseText(t) {
+            tags = {};
+            var e = {},
+                n = d3.select("#per-line").property("checked");
+            t.split(n ? /\n/g : wordSeparators).forEach(function(t) {
+                discard.test(t) || (n || (t = t.replace(punctuation, "")), stopWords.test(t.toLowerCase()) || (t = t.substr(0, maxLength), e[t.toLowerCase()] = t, tags[t = t.toLowerCase()] = (tags[t] || 0) + 1))
+            }), tags = d3.entries(tags).sort(function(t, e) {
+                return e.value - t.value
+            }), tags.forEach(function(t) {
+                t.key = e[t.key]
+            }), generate()
+        }
+
+        function generate() {
+            layout.font(d3.select("#font").property("value")).spiral(d3.select("input[name=spiral]:checked").property("value")), fontSize = d3.scale[d3.select("input[name=scale]:checked").property("value")]().range([10, 100]), tags.length && fontSize.domain([+tags[tags.length - 1].value || 1, +tags[0].value]), complete = 0, statusText.style("display", null), words = [], layout.stop().words(tags.slice(0, max = Math.min(tags.length, +d3.select("#max").property("value")))).start()
+        }
+
+        function progress(t) {
+            statusText.text(++complete + "/" + max)
+        }
+
+        function draw(t, e) {
+            statusText.style("display", "none"), scale = e ? Math.min(w / Math.abs(e[1].x - w / 2), w / Math.abs(e[0].x - w / 2), h / Math.abs(e[1].y - h / 2), h / Math.abs(e[0].y - h / 2)) / 2 : 1, words = t;
+            var n = vis.selectAll("text").data(words, function(t) {
+                return t.text.toLowerCase()
+            });
+            n.transition().duration(1e3).attr("transform", function(t) {
+                return "translate(" + [t.x, t.y] + ")rotate(" + t.rotate + ")"
+            }).style("font-size", function(t) {
+                return t.size + "px"
+            }), n.enter().append("text").attr("text-anchor", "middle").attr("transform", function(t) {
+                return "translate(" + [t.x, t.y] + ")rotate(" + t.rotate + ")"
+            }).style("font-size", "1px").transition().duration(1e3).style("font-size", function(t) {
+                return t.size + "px"
+            }), n.style("font-family", function(t) {
+                return t.font
+            }).style("fill", function(t) {
+                return fill(t.text.toLowerCase())
+            }).text(function(t) {
+                return t.text
+            });
+            var a = background.append("g").attr("transform", vis.attr("transform")),
+                r = a.node();
+            n.exit().each(function() {
+                r.appendChild(this)
+            }), a.transition().duration(1e3).style("opacity", 1e-6).remove(), vis.transition().delay(1e3).duration(750).attr("transform", "translate(" + [w >> 1, h >> 1] + ")scale(" + scale + ")")
+        }
+
+        function downloadPNG() {
+            d3.event.preventDefault();
+            var t = document.createElement("canvas"),
+                e = t.getContext("2d");
+            t.width = w, t.height = h, e.translate(w >> 1, h >> 1), e.scale(scale, scale), words.forEach(function(t, n) {
+                e.save(), e.translate(t.x, t.y), e.rotate(t.rotate * Math.PI / 180), e.textAlign = "center", e.fillStyle = fill(t.text.toLowerCase()), e.font = t.size + "px " + t.font, e.fillText(t.text, 0, 0), e.restore()
+            }), echoContentType.attr("value", "image/png"), echoInput.attr("value", t.toDataURL("image/png")), echoForm.node().submit()
+        }
+
+        function downloadSVG() {
+            d3.event.preventDefault(), echoContentType.attr("value", "image/svg+xml;charset=utf-8"), echoInput.attr("value", svg.attr("version", "1.1").attr("xmlns", "http://www.w3.org/2000/svg").node().parentNode.innerHTML), echoForm.node().submit()
+        }! function(t) {
+            function e() {
+                function t(t, n, a) {
+                    for (var r, o, s, l = ([{
+                            x: 0,
+                            y: 0
+                        }, {
+                            x: e[0],
+                            y: e[1]
+                        }], n.x), i = n.y, d = Math.sqrt(e[0] * e[0] + e[1] * e[1]), h = m(e), f = Math.random() < .5 ? 1 : -1, p = -f;
+                        (r = h(p += f)) && (o = ~~r[0], s = ~~r[1], !(Math.min(o, s) > d));)
+                        if (n.x = l + o, n.y = i + s, !(n.x + n.x0 < 0 || n.y + n.y0 < 0 || n.x + n.x1 > e[0] || n.y + n.y1 > e[1]) && (!a || !u(n, t, e[0])) && (!a || c(n, a))) {
+                            for (var y, g = n.sprite, v = n.width >> 5, x = e[0] >> 5, w = n.x - (v << 4), M = 127 & w, b = 32 - M, z = n.y1 - n.y0, k = (n.y + n.y0) * x + (w >> 5), T = 0; z > T; T++) {
+                                y = 0;
+                                for (var A = 0; v >= A; A++) t[k + A] |= y << b | (v > A ? (y = g[T * v + A]) >>> M : 0);
+                                k += x
+                            }
+                            return delete n.sprite, !0
+                        } return !1
+                }
+                var e = [256, 256],
+                    h = n,
+                    p = a,
+                    y = r,
+                    g = o,
+                    v = s,
+                    m = d,
+                    x = [],
+                    w = 1 / 0,
+                    b = d3.dispatch("word", "end"),
+                    z = null,
+                    k = {};
+                return k.start = function() {
+                    function n() {
+                        for (var n, s = +new Date; + new Date - s < w && ++u < o && z;) n = d[u], n.x = e[0] * (Math.random() + .5) >> 1, n.y = e[1] * (Math.random() + .5) >> 1, l(n, d, u), t(a, n, r) && (c.push(n), b.word(n), r ? i(r, n) : r = [{
+                            x: n.x + n.x0,
+                            y: n.y + n.y0
+                        }, {
+                            x: n.x + n.x1,
+                            y: n.y + n.y1
+                        }], n.x -= e[0] >> 1, n.y -= e[1] >> 1);
+                        u >= o && (k.stop(), b.end(c, r))
+                    }
+                    var a = f((e[0] >> 5) * e[1]),
+                        r = null,
+                        o = x.length,
+                        u = -1,
+                        c = [],
+                        d = x.map(function(t, e) {
+                            return {
+                                text: h.call(this, t, e),
+                                font: p.call(this, t, e),
+                                rotate: g.call(this, t, e),
+                                size: ~~y.call(this, t, e),
+                                padding: s.call(this, t, e)
+                            }
+                        }).sort(function(t, e) {
+                            return e.size - t.size
+                        });
+                    return z && clearInterval(z), z = setInterval(n, 0), n(), k
+                }, k.stop = function() {
+                    return z && (clearInterval(z), z = null), k
+                }, k.timeInterval = function(t) {
+                    return arguments.length ? (w = null == t ? 1 / 0 : t, k) : w
+                }, k.words = function(t) {
+                    return arguments.length ? (x = t, k) : x
+                }, k.size = function(t) {
+                    return arguments.length ? (e = [+t[0], +t[1]], k) : e
+                }, k.font = function(t) {
+                    return arguments.length ? (p = d3.functor(t), k) : p
+                }, k.rotate = function(t) {
+                    return arguments.length ? (g = d3.functor(t), k) : g
+                }, k.text = function(t) {
+                    return arguments.length ? (h = d3.functor(t), k) : h
+                }, k.spiral = function(t) {
+                    return arguments.length ? (m = M[t + ""] || t, k) : m
+                }, k.fontSize = function(t) {
+                    return arguments.length ? (y = d3.functor(t), k) : y
+                }, k.padding = function(t) {
+                    return arguments.length ? (v = d3.functor(t), k) : v
+                }, d3.rebind(k, b, "on")
+            }
+
+            function n(t) {
+                return t.text
+            }
+
+            function a() {
+                return "serif"
+            }
+
+            function r(t) {
+                return Math.sqrt(t.value)
+            }
+
+            function o() {
+                return 30 * (~~(6 * Math.random()) - 3)
+            }
+
+            function s() {
+                return 1
+            }
+
+            function l(t, e, n) {
+                if (!t.sprite) {
+                    w.clearRect(0, 0, (g << 5) / m, v / m);
+                    var a = 0,
+                        r = 0,
+                        o = 0,
+                        s = e.length;
+                    for (n--; ++n < s;) {
+                        t = e[n], w.save(), w.font = ~~((t.size + 1) / m) + "px " + t.font;
+                        var l = w.measureText(t.text + "m").width * m,
+                            u = t.size << 1;
+                        if (t.rotate) {
+                            var i = Math.sin(t.rotate * y),
+                                c = Math.cos(t.rotate * y),
+                                d = l * c,
+                                h = l * i,
+                                f = u * c,
+                                p = u * i;
+                            l = Math.max(Math.abs(d + p), Math.abs(d - p)) + 31 >> 5 << 5, u = ~~Math.max(Math.abs(h + f), Math.abs(h - f))
+                        } else l = l + 31 >> 5 << 5;
+                        if (u > o && (o = u), a + l >= g << 5 && (a = 0, r += o, o = 0), r + u >= v) break;
+                        w.translate((a + (l >> 1)) / m, (r + (u >> 1)) / m), t.rotate && w.rotate(t.rotate * y), w.fillText(t.text, 0, 0), w.restore(), t.width = l, t.height = u, t.xoff = a, t.yoff = r, t.x1 = l >> 1, t.y1 = u >> 1, t.x0 = -t.x1, t.y0 = -t.y1, a += l
+                    }
+                    for (var x = w.getImageData(0, 0, (g << 5) / m, v / m).data, M = []; --n >= 0;) {
+                        t = e[n];
+                        for (var l = t.width, b = l >> 5, u = t.y1 - t.y0, z = t.padding, k = 0; u * b > k; k++) M[k] = 0;
+                        if (a = t.xoff, null == a) return;
+                        r = t.yoff;
+                        for (var T = 0, A = -1, C = 0; u > C; C++) {
+                            for (var k = 0; l > k; k++) {
+                                var S = b * C + (k >> 5),
+                                    I = x[(r + C) * (g << 5) + (a + k) << 2] ? 1 << 31 - k % 32 : 0;
+                                z && (C && (M[S - b] |= I), l - 1 > C && (M[S + b] |= I), I |= I << 1 | I >> 1), M[S] |= I, T |= I
+                            }
+                            T ? A = C : (t.y0++, u--, C--, r++)
+                        }
+                        t.y1 = t.y0 + A, t.sprite = M.slice(0, (t.y1 - t.y0) * b)
+                    }
+                }
+            }
+
+            function u(t, e, n) {
+                n >>= 5;
+                for (var a, r = t.sprite, o = t.width >> 5, s = t.x - (o << 4), l = 127 & s, u = 32 - l, i = t.y1 - t.y0, c = (t.y + t.y0) * n + (s >> 5), d = 0; i > d; d++) {
+                    a = 0;
+                    for (var h = 0; o >= h; h++)
+                        if ((a << u | (o > h ? (a = r[d * o + h]) >>> l : 0)) & e[c + h]) return !0;
+                    c += n
+                }
+                return !1
+            }
+
+            function i(t, e) {
+                var n = t[0],
+                    a = t[1];
+                e.x + e.x0 < n.x && (n.x = e.x + e.x0), e.y + e.y0 < n.y && (n.y = e.y + e.y0), e.x + e.x1 > a.x && (a.x = e.x + e.x1), e.y + e.y1 > a.y && (a.y = e.y + e.y1)
+            }
+
+            function c(t, e) {
+                return t.x + t.x1 > e[0].x && t.x + t.x0 < e[1].x && t.y + t.y1 > e[0].y && t.y + t.y0 < e[1].y
+            }
+
+            function d(t) {
+                var e = t[0] / t[1];
+                return function(t) {
+                    return [e * (t *= .1) * Math.cos(t), t * Math.sin(t)]
+                }
+            }
+
+            function h(t) {
+                var e = 4,
+                    n = e * t[0] / t[1],
+                    a = 0,
+                    r = 0;
+                return function(t) {
+                    var o = 0 > t ? -1 : 1;
+                    switch (Math.sqrt(1 + 4 * o * t) - o & 3) {
+                        case 0:
+                            a += n;
+                            break;
+                        case 1:
+                            r += e;
+                            break;
+                        case 2:
+                            a -= n;
+                            break;
+                        default:
+                            r -= e
+                    }
+                    return [a, r]
+                }
+            }
+
+            function f(t) {
+                for (var e = [], n = -1; ++n < t;) e[n] = 0;
+                return e
+            }
+            var p, y = Math.PI / 180,
+                g = 64,
+                v = 2048,
+                m = 1;
+            if ("undefined" != typeof document) p = document.createElement("canvas"), p.width = 1, p.height = 1, m = Math.sqrt(p.getContext("2d").getImageData(0, 0, 1, 1).data.length >> 2), p.width = (g << 5) / m, p.height = v / m;
+            else {
+                var x = require("canvas");
+                p = new x(g << 5, v)
+            }
+            var w = p.getContext("2d"),
+                M = {
+                    archimedean: d,
+                    rectangular: h
+                };
+            w.fillStyle = "red", w.textAlign = "center", t.cloud = e
+        }("undefined" == typeof exports ? d3.layout || (d3.layout = {}) : exports);
+        var unicodePunctuationRe = "!-#%-*,-/:;?@\\[-\\]_{}\xa1\xa7\xab\xb6\xb7\xbb\xbf\u037e\u0387\u055a-\u055f\u0589\u058a\u05be\u05c0\u05c3\u05c6\u05f3\u05f4\u0609\u060a\u060c\u060d\u061b\u061e\u061f\u066a-\u066d\u06d4\u0700-\u070d\u07f7-\u07f9\u0830-\u083e\u085e\u0964\u0965\u0970\u0af0\u0df4\u0e4f\u0e5a\u0e5b\u0f04-\u0f12\u0f14\u0f3a-\u0f3d\u0f85\u0fd0-\u0fd4\u0fd9\u0fda\u104a-\u104f\u10fb\u1360-\u1368\u1400\u166d\u166e\u169b\u169c\u16eb-\u16ed\u1735\u1736\u17d4-\u17d6\u17d8-\u17da\u1800-\u180a\u1944\u1945\u1a1e\u1a1f\u1aa0-\u1aa6\u1aa8-\u1aad\u1b5a-\u1b60\u1bfc-\u1bff\u1c3b-\u1c3f\u1c7e\u1c7f\u1cc0-\u1cc7\u1cd3\u2010-\u2027\u2030-\u2043\u2045-\u2051\u2053-\u205e\u207d\u207e\u208d\u208e\u2329\u232a\u2768-\u2775\u27c5\u27c6\u27e6-\u27ef\u2983-\u2998\u29d8-\u29db\u29fc\u29fd\u2cf9-\u2cfc\u2cfe\u2cff\u2d70\u2e00-\u2e2e\u2e30-\u2e3b\u3001-\u3003\u3008-\u3011\u3014-\u301f\u3030\u303d\u30a0\u30fb\ua4fe\ua4ff\ua60d-\ua60f\ua673\ua67e\ua6f2-\ua6f7\ua874-\ua877\ua8ce\ua8cf\ua8f8-\ua8fa\ua92e\ua92f\ua95f\ua9c1-\ua9cd\ua9de\ua9df\uaa5c-\uaa5f\uaade\uaadf\uaaf0\uaaf1\uabeb\ufd3e\ufd3f\ufe10-\ufe19\ufe30-\ufe52\ufe54-\ufe61\ufe63\ufe68\ufe6a\ufe6b\uff01-\uff03\uff05-\uff0a\uff0c-\uff0f\uff1a\uff1b\uff1f\uff20\uff3b-\uff3d\uff3f\uff5b\uff5d\uff5f-\uff65",
+            fill = d3.scale.category20b(),
+            w = 960,
+            h = 600,
+            words = [],
+            max, scale = 1,
+            complete = 0,
+            keyword = "",
+            tags, fontSize, maxLength = 30,
+            fetcher, statusText = d3.select("#status"),
+            layout = d3.layout.cloud().timeInterval(10).size([w, h]).fontSize(function(t) {
+                return fontSize(+t.value)
+            }).text(function(t) {
+                return t.key
+            }).on("word", progress).on("end", draw),
+            echoForm = d3.select("body").append("form").attr("action", "https://www.jasondavies.com/echo").attr("target", "_blank").attr("method", "POST"),
+            echoContentType = echoForm.append("input").attr("type", "hidden").attr("name", "content-type"),
+            echoInput = echoForm.append("input").attr("type", "hidden").attr("name", "echo"),
+            svg = d3.select("#vis").append("svg").attr("width",w).attr("height", h).attr("transform", "translate(" + [117, 0] + ")"),
+            background = svg.append("g"),
+            vis = svg.append("g").attr("transform", "translate(" + [w >> 1, h >> 1] + ")");
+        d3.select("#download-svg").on("click", downloadSVG), d3.select("#download-png").on("click", downloadPNG);
+        var form = d3.select("#form").on("submit", function() {
+            parseText(d3.select("#text").property("value")), d3.event.preventDefault()
+        });
+        form.selectAll("input[type=number]").on("click.refresh", function() {
+            this.value !== this.defaultValue && (generate(), this.defaultValue = this.value)
+        }), form.selectAll("input[type=radio], #font").on("change", generate);
+        var stopWords = /^(i|me|my|myself|we|us|our|ours|ourselves|you|your|yours|yourself|yourselves|he|him|his|himself|she|her|hers|herself|it|its|itself|they|them|their|theirs|themselves|what|which|who|whom|whose|this|that|these|those|am|is|are|was|were|be|been|being|have|has|had|having|do|does|did|doing|will|would|should|can|could|ought|i'm|you're|he's|she's|it's|we're|they're|i've|you've|we've|they've|i'd|you'd|he'd|she'd|we'd|they'd|i'll|you'll|he'll|she'll|we'll|they'll|isn't|aren't|wasn't|weren't|hasn't|haven't|hadn't|doesn't|don't|didn't|won't|wouldn't|shan't|shouldn't|can't|cannot|couldn't|mustn't|let's|that's|who's|what's|here's|there's|when's|where's|why's|how's|a|an|the|and|but|if|or|because|as|until|while|of|at|by|for|with|about|against|between|into|through|during|before|after|above|below|to|from|up|upon|down|in|out|on|off|over|under|again|further|then|once|here|there|when|where|why|how|all|any|both|each|few|more|most|other|some|such|no|nor|not|only|own|same|so|than|too|very|say|says|said|shall)$/,
+            punctuation = new RegExp("[" + unicodePunctuationRe + "]", "g"),
+            wordSeparators = /[ \f\n\r\t\v\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\u3031-\u3035\u309b\u309c\u30a0\u30fc\uff70]+/g,
+            discard = /^(@|https?:|\/\/)/,
+            htmlTags = /(<[^>]*?>|<script.*?<\/script>|<style.*?<\/style>|<head.*?><\/head>)/g,
+            matchTwitter = /^https?:\/\/([^\.]*\.)?twitter\.com/;
+        d3.select("#random-palette").on("click", function() {
+                paletteJSON("http://www.colourlovers.com/api/palettes/random", {}, function(t) {
+                    fill.range(t[0].colors), vis.selectAll("text").style("fill", function(t) {
+                        return fill(t.text.toLowerCase())
+                    })
+                }), d3.event.preventDefault()
+            }),
+            function() {
+                function t() {
+                    c = +d3.select("#angle-count").property("value"), u = Math.max(-90, Math.min(90, +d3.select("#angle-from").property("value"))), i = Math.max(-90, Math.min(90, +d3.select("#angle-to").property("value"))), e()
+                }
+
+                function e() {
+                    h.domain([0, c - 1]).range([u, i]);
+                    var t = l.selectAll("path.angle").data([{
+                        startAngle: u * d,
+                        endAngle: i * d
+                    }]);
+                    t.enter().insert("path", "circle").attr("class", "angle").style("fill", "#9F79EE"), t.attr("d", f);
+                    var o = l.selectAll("line.angle").data(d3.range(c).map(h));
+                    o.enter().append("line").attr("class", "angle"), o.exit().remove(), o.attr("transform", function(t) {
+                        return "rotate(" + (90 + t) + ")"
+                    }).attr("x2", function(t, e) {
+                        return e && e !== c - 1 ? -r : -r - 5
+                    });
+                    var s = l.selectAll("path.drag").data([u, i]);
+                    s.enter().append("path").attr("class", "drag").attr("d", "M-9.5,0L-3,3.5L-3,-3.5Z").call(d3.behavior.drag().on("drag", function(t, o) {
+                        t = (o ? i : u) + 90;
+                        var s = [-r * Math.cos(t * d), -r * Math.sin(t * d)],
+                            l = [d3.event.x, d3.event.y],
+                            c = ~~(Math.atan2(n(s, l), a(s, l)) / d);
+                        t = Math.max(-90, Math.min(90, t + c - 90)), c = i - u, o ? (i = t, c > 360 ? u += c - 360 : 0 > c && (u = i)) : (u = t, c > 360 ? i += 360 - c : 0 > c && (i = u)), e()
+                    }).on("dragend", generate)), s.attr("transform", function(t) {
+                        return "rotate(" + (t + 90) + ")translate(-" + r + ")"
+                    }), layout.rotate(function() {
+                        return h(~~(Math.random() * c))
+                    }), d3.select("#angle-count").property("value", c), d3.select("#angle-from").property("value", u), d3.select("#angle-to").property("value", i)
+                }
+
+                function n(t, e) {
+                    return t[0] * e[1] - t[1] * e[0]
+                }
+
+                function a(t, e) {
+                    return t[0] * e[0] + t[1] * e[1]
+                }
+                var r = 40.5,
+                    o = 35,
+                    s = 20,
+                    l = d3.select("#angles").append("svg").attr("width", 2 * (r + o)).attr("height", r + 1.5 * s).append("g").attr("transform", "translate(" + [r + o, r + s] + ")");
+                l.append("path").style("fill", "none").attr("d", ["M", -r, 0, "A", r, r, 0, 0, 1, r, 0].join(" ")), l.append("line").attr("x1", -r - 7).attr("x2", r + 7), l.append("line").attr("y2", -r - 7), l.selectAll("text").data([-90, 0, 90]).enter().append("text").attr("dy", function(t, e) {
+                    return 1 === e ? null : ".3em"
+                }).attr("text-anchor", function(t, e) {
+                    return ["end", "middle", "start"][e]
+                }).attr("transform", function(t) {
+                    return t += 90, "rotate(" + t + ")translate(" + -(r + 10) + ")rotate(" + -t + ")translate(2)"
+                }).text(function(t) {
+                    return t + "\xb0"
+                });
+                var u, i, c, d = Math.PI / 180,
+                    h = d3.scale.linear(),
+                    f = d3.svg.arc().innerRadius(0).outerRadius(r);
+                d3.selectAll("#angle-count, #angle-from, #angle-to").on("change", t).on("mouseup", t), t(), parseText(d3.select("#text").property("value"))
+            }();
+    </script>
+    <script>
+
+    </script>
+<script>
+function draw_konwledge(){
+     document.getElementById("to_display").style.display="none";
+// http://blog.thomsonreuters.com/index.php/mobile-patent-suits-graphic-of-the-day/
+var arr = document.getElementById("data_text").getElementsByTagName('li'),links = [];
+for(var i = 0;i<arr.length;i++){
+    arr_str=arr[i].innerHTML;
+    var obj = eval('(' + arr_str + ')');
+    links.push(obj)
+}
+/*var links2 = [
+  {source: "同花顺", target: "IFIND", rela:"主营产品"},
+  {source: "同花顺", target: "手机金融信息服务", rela:"主营产品"},
+  {source: "同花顺", target: "互联网金融信息服务", rela:"主营产品"},
+  {source: "同花顺", target: "网上行情交易系统", rela:"主营产品"},
+  {source: "同花顺", target: "金融资讯及数据服务", rela:"主营产品"},
+  {source: "同花顺", target: "互联网金融",rela:"主营产品"},
+  {source: "同花顺", target: "金融服务",rela:"主营产品"},
+  {source: "手机金融信息服务", target: "金融信息服务", rela:"上位产品"},
+  {source: "互联网金融信息服务", target: "金融信息服务", rela:"上位产品"},
+  {source: "二三四五002195", target: "金融信息服务", rela:"主营产品"},
+  {source: "大智慧601519", target: "金融信息服务", rela:"主营产品"},
+  {source: "大智慧601519", target: "互联网金融信息服务", rela:"主营产品"},
+  {source: "金融服务", target: "移动互联网", rela:"上游"},
+  {source: "金融服务", target: "互联网金融服务", rela:"下位产品"},
+  {source: "金融服务", target: "综合金融服务", rela:"下位产品"}
+];*/
+
+var nodes = {};
+
+links.forEach(function(link) {
+  link.source = nodes[link.source] || (nodes[link.source] = {name: link.source});
+  link.target = nodes[link.target] || (nodes[link.target] = {name: link.target});
+});
+
+var width = 1500,
+    height = 700;
+
+var force = d3.layout.force()//layout将json格式转化为力学图可用的格式
+    .nodes(d3.values(nodes))//设定节点数组
+    .links(links)//设定连线数组
+    .size([width, height])//作用域的大小
+    .linkDistance(150)//连接线长度
+    .charge(-1500)//顶点的电荷数。该参数决定是排斥还是吸引，数值越小越互相排斥
+    .on("tick", tick)//指时间间隔，隔一段时间刷新一次画面
+    .start();//开始转换
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+//箭头
+var marker=
+    svg.append("marker")
+    //.attr("id", function(d) { return d; })
+    .attr("id", "resolved")
+    //.attr("markerUnits","strokeWidth")//设置为strokeWidth箭头会随着线的粗细发生变化
+    .attr("markerUnits","userSpaceOnUse")
+    .attr("viewBox", "0 -5 10 10")//坐标系的区域
+    .attr("refX",32)//箭头坐标
+    .attr("refY", -1)
+    .attr("markerWidth", 12)//标识的大小
+    .attr("markerHeight", 12)
+    .attr("orient", "auto")//绘制方向，可设定为：auto（自动确认方向）和 角度值
+    .attr("stroke-width",2)//箭头宽度
+    .append("path")
+    .attr("d", "M0,-5L10,0L0,5")//箭头的路径
+    .attr('fill','#000000');//箭头颜色
+
+/* 将连接线设置为曲线
+var path = svg.append("g").selectAll("path")
+    .data(force.links())
+    .enter().append("path")
+    .attr("class", function(d) { return "link " + d.type; })
+    .style("stroke",function(d){
+        //console.log(d);
+       return "#A254A2";//连接线的颜色
+    })
+    .attr("marker-end", function(d) { return "url(#" + d.type + ")"; });
+*/
+
+//设置连接线
+var edges_line = svg.selectAll(".edgepath")
+    .data(force.links())
+    .enter()
+    .append("path")
+    .attr({
+          'd': function(d) {return 'M '+d.source.x+' '+d.source.y+' L '+ d.target.x +' '+d.target.y},
+          'class':'edgepath',
+          //'fill-opacity':0,
+          //'stroke-opacity':0,
+          //'fill':'blue',
+          //'stroke':'red',
+          'id':function(d,i) {return 'edgepath'+i;}})
+    .style("stroke",function(d){
+         var lineColor;
+         //根据关系的不同设置线条颜色
+
+             lineColor="#F30E00";
+
+         return lineColor;
+     })
+    .style("pointer-events", "none")
+    .style("stroke-width",0.5)//线条粗细
+    .attr("marker-end", "url(#resolved)" );//根据箭头标记的id号标记箭头
+
+var edges_text = svg.append("g").selectAll(".edgelabel")
+.data(force.links())
+.enter()
+.append("text")
+.style("pointer-events", "none")
+//.attr("class","linetext")
+.attr({  'class':'edgelabel',
+               'id':function(d,i){return 'edgepath'+i;},
+               'dx':80,
+               'dy':0
+               //'font-size':10,
+               //'fill':'#aaa'
+               });
+
+//设置线条上的文字
+edges_text.append('textPath')
+.attr('xlink:href',function(d,i) {return '#edgepath'+i})
+.style("pointer-events", "none")
+.text(function(d){return d.rela;});
+
+//圆圈
+var circle = svg.append("g").selectAll("circle")
+    .data(force.nodes())//表示使用force.nodes数据
+    .enter().append("circle")
+    .style("fill",function(node){
+        var color;//圆圈背景色
+        var link=links[node.index];
+        console.log('22',link)
+
+            color="#F0F0F0";
+
+        return color;
+    })
+    .style('stroke',function(node){
+        var color;//圆圈线条的颜色
+        var link=links[node.index];
+
+            color="#d0d0d0";
+
+        return color;
+    })
+    .attr("r", 27)//设置圆圈半径
+    .on("click",function(node){
+        //单击时让连接线加粗
+        edges_line.style("stroke-width",function(line){
+            console.log(line);
+            if(line.source.name==node.name || line.target.name==node.name){
+                return 2;
+            }else{
+                return 0.5;
+            }
+        });
+        //d3.select(this).style('stroke-width',2);
+    })
+    .call(force.drag);//将当前选中的元素传到drag函数中，使顶点可以被拖动
+
+
+var text = svg.append("g").selectAll("text")
+    .data(force.nodes())
+    //返回缺失元素的占位对象（placeholder），指向绑定的数据中比选定元素集多出的一部分元素。
+    .enter()
+    .append("text")
+    .attr("dy", ".35em")
+    .attr("text-anchor", "middle")//在圆圈中加上数据
+    .style('fill',function(node){
+        var color;//文字颜色
+        var link=links[node.index];
+
+            color="#565657";
+
+        return color;
+    }).attr('x',function(d){
+        // console.log(d.name+"---"+ d.name.length);
+        var re_en = /[a-zA-Z]+/g;
+        //如果是全英文，不换行
+        if(d.name.match(re_en)){
+             d3.select(this).append('tspan')
+             .attr('x',0)
+             .attr('y',2)
+             .text(function(){return d.name;});
+        }
+        //如果小于四个字符，不换行
+        else if(d.name.length<=4){
+             d3.select(this).append('tspan')
+            .attr('x',0)
+            .attr('y',2)
+            .text(function(){return d.name;});
+        }else{
+            var top=d.name.substring(0,4);
+            var bot=d.name.substring(4,d.name.length);
+
+            d3.select(this).text(function(){return '';});
+
+            d3.select(this).append('tspan')
+                .attr('x',0)
+                .attr('y',-7)
+                .text(function(){return top;});
+
+            d3.select(this).append('tspan')
+                .attr('x',0)
+                .attr('y',10)
+                .text(function(){return bot;});
+        }
+
+    });
+
+
+function tick() {
+
+  circle.attr("transform", transform1);//圆圈
+  text.attr("transform", transform2);//顶点文字
+
+  edges_line.attr('d', function(d) {
+      var path='M '+d.source.x+' '+d.source.y+' L '+ d.target.x +' '+d.target.y;
+      return path;
+  });
+
+  edges_text.attr('transform',function(d,i){
+        if (d.target.x<d.source.x){
+            bbox = this.getBBox();
+            rx = bbox.x+bbox.width/2;
+            ry = bbox.y+bbox.height/2;
+            return 'rotate(180 '+rx+' '+ry+')';
+        }
+        else {
+            return 'rotate(0)';
+        }
+   });
+}
+
+//设置连接线的坐标,使用椭圆弧路径段双向编码
+function linkArc(d) {
+
+  return 'M '+d.source.x+' '+d.source.y+' L '+ d.target.x +' '+d.target.y
+}
+//设置圆圈和文字的坐标
+function transform1(d) {
+  return "translate(" + d.x + "," + d.y + ")";
+}
+function transform2(d) {
+      return "translate(" + (d.x) + "," + d.y + ")";
+}
+}
+</script>
+    <div id="text" class="text" style="display: none">
+        <ul id="data_text" style="display: none">
+            {% for name in text_data %}
+            <li>{{ name }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
