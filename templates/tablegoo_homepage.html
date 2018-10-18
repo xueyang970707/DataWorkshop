@@ -22,10 +22,10 @@
     <link rel="stylesheet" type="text/css" href="/static/css/user.css">
 
 </head>
-<body>
+<body >
 
 <!-- MENU -->
-<div class="navbar custom-navbar navbar-fixed-top" role="navigation">
+<div class="navbar custom-navbar navbar-fixed-top" role="navigation" style="background:black;">
     <div class="container">
 
         <!-- NAVBAR HEADER -->
@@ -42,9 +42,9 @@
         <!-- MENU LINKS -->
         <div class="collapse navbar-collapse">
             <ul class="nav navbar-nav navbar-right">
-                <li><a href="#home" class="smoothScroll">Home</a></li>
+                <li><a onclick="download_report()" class="smoothScroll">Report</a></li>
+                <li><a href="/" class="smoothScroll">Home</a></li>
                 <li><a href="/products" class="smoothScroll">Products</a></li>
-                <li><a href="#visual_charts" class="smoothScroll">Gallery</a></li>
                 <li><a href="#" class="smoothScroll">Contact us</a></li>
                 <li>
                     <div style="width: 2px; height: 20px; background-color: white; margin: 15px"></div>
@@ -101,45 +101,6 @@
     </div>
 </div>
 
-<!-- HOME -->
-<section id="home" class="parallax-section">
-    <div class="overlay"></div>
-    <div class="container">
-        <div class="row">
-            <div class="col-md-8 col-sm-12">
-                <div class="home-text">
-                    <h1>Welcome to DaGoo!</h1>
-                    <br>
-                    <div id="upload_data_type" class="select_container">
-                        Data Type: &nbsp
-                        <input id="r1" type="radio" name="select" class= "dataType" checked="checked" value="Normal"> &nbsp Normal</input> &nbsp
-                        <input id="r2" type="radio" name="select" class= "dataType" value="Streaming">&nbsp Streaming</input> &nbsp
-                        <input id="r3" type="radio" name="select" class= "dataType" value="Geographical">&nbsp Geographical</input> &nbsp
-                        <input id="r4" type="radio" name="select" class= "dataType" value="Text">&nbsp Text</input> &nbsp
-                        <input id="r5" type="radio" name="select" class= "dataType" value="Graph">&nbsp Graph</input>
-                    </div>
-
-                    <input class="button_blue" id="file_path" name="file_path" type="button"
-                           onclick="path.click()" value="File Upload">
-                    <input type="file" id="path" style="display:none" name="csvfile"
-                           onchange="file_path.value=this.value">
-                    <input class="button_blue" type="button" onclick="read_file()" value="Submit">
-                    <a href='/clean' style="color: white">Clean</a>
-                    <a href='/geo/' style="color: white">&nbsp;Map</a>
-                    <ul class="section-btn">
-                        <a onclick="download_report()" class="smoothScroll"><span data-hover="Analysis Report">Analysis Report</span></a>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Video -->
-    <video controls autoplay loop muted>
-        <source src="../static/videos/video.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-    </video>
-</section>
-
 <!-- Analysis -->
 <div id="analysis">
     <div class="section-title">
@@ -161,7 +122,7 @@
                             <button id="corr_matrix_button" onclick="set_corr_matrix_svg_visual()" rel="tooltip" data-placement="right" data-original-title="change the method" type="button" class="btn"><i class="fa fa-exchange"></i></button>
                         </div>
                     </div>
-                    <div class="col-lg-5" id="analysis_corr_matrix_svg" style="display: inline">
+                    <div class="col-lg-5" id="analysis_corr_matrix_svg" style="display: none">
                         <text>Order:</text>
                         <div>
                             <select id="order">
@@ -171,8 +132,8 @@
                             </select>
                         </div>
                     </div>
-                    <div class="col-lg-5" id="analysis_attributions_analysis_svg" style="display: none"></div>
-                    <div class="col-lg-3" id="analysis_corr_force_info" style="display: none">
+                    <div class="col-lg-5" id="analysis_attributions_analysis_svg" style="display: inline"></div>
+                    <div class="col-lg-3" id="analysis_corr_force_info" >
                         <div class="panel panel-default">
                             <div class="panel-body">
                                 We calculate the correlation coefficient between
@@ -184,7 +145,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-3" id="analysis_corr_matrix_info">
+                    <div class="col-lg-3" id="analysis_corr_matrix_info" style="display: none">
                         <div class="panel panel-default">
                             <div class="panel-body">
                                 We calculate the correlation coefficient between
@@ -201,7 +162,7 @@
             </ul>
             <ul id="analysis_cluster_embedding">
                 <div class="row">
-                    <div class="col-lg-3" id="analysis_list">
+                    <div class="col-lg-2" id="analysis_list">
                         <div class="col-xs-12 smart-margin-bottom-20">
                             <button id="corr_matrix_button" onclick="action_performed('/cluster')" rel="tooltip" data-placement="right" data-original-title="cluster methods" type="button" class="btn"><i class="fa fa-edit"></i></button>
                         </div>
@@ -209,8 +170,8 @@
                             <button id="corr_matrix_button" onclick="action_performed('/embedding')" rel="tooltip" data-placement="right" data-original-title="embedding methods" type="button" class="btn"><i class="fa fa-edit"></i></button>
                         </div>
                     </div>
-                    <div class="col-lg-6" id="analysis_cluster_embedding_svg"></div>
-                    <div class="col-lg-3" id="analysis_info"></div>
+                    <div class="col-lg-4" id="analysis_cluster_embedding_svg"></div>
+                    <div class="col-lg-6" id="analysis_user_image"></div>
                 </div>
             </ul>
             <ul id="analysis_anomaly_detection">
@@ -421,6 +382,11 @@
     </ul>
 </div>
 
+<div style="display: none;">
+<ul class="section-btn">
+    <a onclick="download_report()" class="smoothScroll"><span data-hover="Analysis Report">Analysis Report</span></a>
+</ul>
+</div>
 <!-- SCRIPTS -->
 <script src="../static/js/jquery.js"></script>
 <script src="../static/js/bootstrap.min.js"></script>
@@ -431,12 +397,11 @@
 <script src="../static/js/custom.js"></script>
 <script src="../static/js/upload.js"></script>
 <script src="../static/js/tab.js"></script>
-<script src="https://cdn.bootcss.com/PapaParse/4.4.0/papaparse.js"></script>
-<script src=" https://cdnjs.cloudflare.com/ajax/libs/jschardet/1.4.1/jschardet.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.min.js"></script>
-<script src="http://d3js.org/d3.v3.min.js"></script>
-<script type="text/javascript" src="http://www.xdocin.com/xdoc.js"></script>
-<script type="text/javascript" src="http://www.xdocin.com/baiduTemplate.js"></script>
+<script src="../static/js/papaparse.js"></script>
+<script src="../static/js/jschardet.min.js"></script>
+<script src="../static/js/d3.vs.min.js"></script>
+<script src="../static/js/xdoc.js"></script>
+<script src="../static/js/baiduTemplate.js"></script>
 <script src="../static/js/parallel.js"></script>
 <script src="../static/js/radviz.js"></script>
 <script src="../static/js/scatter.js"></script>
@@ -450,6 +415,68 @@
 </script>
 <!--data-->
 <script>
+    features_dictionary = new Array();
+    arr = document.getElementById("features_dictionary").getElementsByTagName('li');
+    temp = [];
+    for (i = 0; i < arr.length; i++) {
+        features_dictionary.push(arr[i].innerHTML);
+    }
+
+    no_identifiers_data_dictionary = new Array();
+    arr = document.getElementById("no_identifiers_data_dictionary").getElementsByTagName('li');
+    for (i = 0; i < arr.length; i++) {
+        arr_str = arr[i].innerHTML;
+        obj = eval('(' + arr_str + ')');
+        no_identifiers_data_dictionary.push(obj)
+    }
+
+    var no_identifiers_data_list = new Array();
+    arr = document.getElementById('no_identifiers_data_list').getElementsByTagName('li');
+    temp = [];
+    for (i = 0; i < arr.length; i++) {
+        temp.push(arr[i].innerHTML)
+    }
+    for (i = 0; i < temp.length; i++) {
+        temp1 = temp[i].replace('[', '');
+        temp2 = temp1.replace(']', '');
+        temp3 = temp2.split(",");
+        numArray = temp3.map((value) => {
+            return parseFloat(value);
+        });
+        no_identifiers_data_list.push(numArray)
+    }
+
+    var no_identifiers_data_list_transform = new Array();
+    arr = document.getElementById('no_identifiers_data_list_transform').getElementsByTagName('li');
+    temp = [];
+    for (i = 0; i < arr.length; i++) {
+        temp.push(arr[i].innerHTML)
+    }
+    for (i = 0; i < temp.length; i++) {
+        temp1 = temp[i].replace('[', '');
+        temp2 = temp1.replace(']', '');
+        temp3 = temp2.split(",");
+        numArray = temp3.map((value) => {
+            return parseFloat(value);
+        });
+        no_identifiers_data_list_transform.push(numArray)
+    }
+
+    var data_list = new Array();
+    arr = document.getElementById('data_list').getElementsByTagName('li');
+    temp = [];
+    for (i = 0; i < arr.length; i++) {
+        temp.push(arr[i].innerHTML)
+    }
+    for (i = 0; i < temp.length; i++) {
+        temp1 = temp[i].replace('[', '');
+        temp2 = temp1.replace(']', '');
+        temp3 = temp2.split(",");
+        numArray = temp3.map((value) => {
+            return parseFloat(value);
+        });
+        data_list.push(numArray)
+    }
     features_string = "";
     means = "";
     medians = "";
@@ -535,20 +562,16 @@
 
     colors = ["purple", "maroon", "navy", "aqua", "lime", "sliver", "red", "yellow", "blue", "darkslategray"];
     d3Colors = d3.scale.ordinal().range(["purple", "maroon", "navy", "aqua", "lime", "sliver", "red", "yellow", "blue", "darkslategray"]);
-
     arr = document.getElementById("cluster_method").getElementsByTagName('li');
     cluster_method = arr[0].innerHTML;
-
     arr = document.getElementById("embedding_method").getElementsByTagName('li');
     embedding_method = arr[0].innerHTML;
-
     arr = document.getElementById("data_dictionary").getElementsByTagName('li'), data_dictionary = [];
     for (i = 0; i < arr.length; i++) {
         arr_str = arr[i].innerHTML;
         var obj = eval('(' + arr_str + ')');
         data_dictionary.push(obj);
     }
-
     cluster_embedding_dataset = new Array()
     arr = document.getElementById("cluster_embedding_data").getElementsByTagName('li');
     temp = [];
@@ -564,12 +587,10 @@
         });
         cluster_embedding_dataset.push(numArray);
     }
-
     arr = document.getElementById("n_clusters").getElementsByTagName('li');
     temp = arr[0].innerHTML;
     clusters = parseInt(temp);
-
-    indexes = new Array();
+    indexes = [];
     indexes_string = "Samples marked by ID ";
     for (j = 0; j < clusters; j++) {
         each_indexes = [];
@@ -590,16 +611,25 @@
         indexes.push(each_indexes);
         indexes_string = indexes_string + each_indexes_string + 'belongs to the group colored by "' + colors[j] + '" with ' + each_indexes.length + ' members. ';
     }
-
     cluster_strings = '   We applied the "' + cluster_method + '" cluster analysis.';
     cluster_strings = cluster_strings + 'The dataset can roughly divided as ' + clusters.toString() + ' groups.';
     cluster_strings = cluster_strings + indexes_string;
-
     embedding_string = '   To better find the feature, we applied "' + embedding_method + '" to show them. ' +
     'The dataset is projected from n-dimensional to two-dimensional';
+    users_image = [];
+    for(i = 0; i < clusters; i++){
+        each_row = [];
+        for(j = 0; j < feature_list.length; j++){
+            sum = 0;
+            for(k = 0; k < indexes[i].length; k++){
+                sum += no_identifiers_data_list[indexes[i][k]][j];
+            }
+            each_row.push(sum/indexes[i].length);
+        }
+        users_image.push(each_row);
+    }
 
-
-    attributions_analysis_dataset = new Array()
+    attributions_analysis_dataset = [];
     arr = document.getElementById("attributions_analysis_data").getElementsByTagName('li');
     temp = [];
     for (i = 0; i < arr.length; i++) {
@@ -615,7 +645,7 @@
         attributions_analysis_dataset.push(numArray);
     }
 
-    anomaly_detection_dataset = new Array()
+    anomaly_detection_dataset = [];
     arr = document.getElementById("anomaly_detection_data").getElementsByTagName('li');
     temp = [];
     for (i = 0; i < arr.length; i++) {
@@ -631,7 +661,7 @@
         anomaly_detection_dataset.push(numArray);
     }
 
-    regression_dataset = new Array()
+    regression_dataset = [];
     arr = document.getElementById("regression_data").getElementsByTagName('li');
     temp = [];
     for (i = 0; i < arr.length; i++) {
@@ -645,69 +675,6 @@
             return parseFloat(value);
         });
         regression_dataset.push(numArray);
-    }
-
-    features_dictionary = new Array();
-    arr = document.getElementById("features_dictionary").getElementsByTagName('li');
-    temp = [];
-    for (i = 0; i < arr.length; i++) {
-        features_dictionary.push(arr[i].innerHTML);
-    }
-
-    no_identifiers_data_dictionary = new Array();
-    arr = document.getElementById("no_identifiers_data_dictionary").getElementsByTagName('li');
-    for (i = 0; i < arr.length; i++) {
-        arr_str = arr[i].innerHTML;
-        obj = eval('(' + arr_str + ')');
-        no_identifiers_data_dictionary.push(obj)
-    }
-
-    var no_identifiers_data_list = new Array();
-    arr = document.getElementById('no_identifiers_data_list').getElementsByTagName('li');
-    temp = [];
-    for (i = 0; i < arr.length; i++) {
-        temp.push(arr[i].innerHTML)
-    }
-    for (i = 0; i < temp.length; i++) {
-        temp1 = temp[i].replace('[', '');
-        temp2 = temp1.replace(']', '');
-        temp3 = temp2.split(",");
-        numArray = temp3.map((value) => {
-            return parseFloat(value);
-        });
-        no_identifiers_data_list.push(numArray)
-    }
-
-    var no_identifiers_data_list_transform = new Array();
-    arr = document.getElementById('no_identifiers_data_list_transform').getElementsByTagName('li');
-    temp = [];
-    for (i = 0; i < arr.length; i++) {
-        temp.push(arr[i].innerHTML)
-    }
-    for (i = 0; i < temp.length; i++) {
-        temp1 = temp[i].replace('[', '');
-        temp2 = temp1.replace(']', '');
-        temp3 = temp2.split(",");
-        numArray = temp3.map((value) => {
-            return parseFloat(value);
-        });
-        no_identifiers_data_list_transform.push(numArray)
-    }
-
-    var data_list = new Array();
-    arr = document.getElementById('data_list').getElementsByTagName('li');
-    temp = [];
-    for (i = 0; i < arr.length; i++) {
-        temp.push(arr[i].innerHTML)
-    }
-    for (i = 0; i < temp.length; i++) {
-        temp1 = temp[i].replace('[', '');
-        temp2 = temp1.replace(']', '');
-        temp3 = temp2.split(",");
-        numArray = temp3.map((value) => {
-            return parseFloat(value);
-        });
-        data_list.push(numArray)
     }
 
     arr = document.getElementById("visualization_method").getElementsByTagName('li');
@@ -956,6 +923,20 @@ var corr_matrix_svg = d3.select("#analysis_corr_matrix_svg")
     d3.select("#order").property("selectedIndex", 2).node().focus();
   }, 5000);
 
+  var serializer = new XMLSerializer();
+    var corr_matrix_source = serializer.serializeToString(document.getElementById('corr_matrix_svg'));
+    corr_matrix_source = '<?xml version="1.0" standalone="no"?>\r\n' + corr_matrix_source;
+    var corr_matrix_url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(corr_matrix_source);
+    var corr_matrix_canvas = document.createElement("canvas");
+    corr_matrix_canvas.width = analysis_svgsize*1.1;
+    corr_matrix_canvas.height = analysis_svgsize*1.1;
+    var corr_matrix_context = corr_matrix_canvas.getContext("2d");
+    var corr_matrix_image = new Image;
+    corr_matrix_image.src = corr_matrix_url;
+    corr_matrix_image.onload = function () {
+        corr_matrix_context.drawImage(corr_matrix_image, 0, 0);
+        corr_matrix_svg_url = corr_matrix_canvas.toDataURL("image/png");
+    };
 </script>
 <script>
     var color = d3.scale.category20();
@@ -1100,8 +1081,8 @@ var corr_matrix_svg = d3.select("#analysis_corr_matrix_svg")
     attributions_source = '<?xml version="1.0" standalone="no"?>\r\n' + attributions_source;
     var attributions_url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(attributions_source);
     var attributions_canvas = document.createElement("canvas");
-    attributions_canvas.width = analysis_svgsize;
-    attributions_canvas.height = analysis_svgsize;
+    attributions_canvas.width = analysis_svgsize*1.1;
+    attributions_canvas.height = analysis_svgsize*1.1;
     var attributions_context = attributions_canvas.getContext("2d");
     var attributions_image = new Image;
     attributions_image.src = attributions_url;
@@ -1125,17 +1106,12 @@ var corr_matrix_svg = d3.select("#analysis_corr_matrix_svg")
     var yScale = d3.scale.linear()
         .domain([cmin, cmax])
         .range([analysis_svgsize - padding, padding]);
-    /*var cluster_zoom = d3.behavior.zoom()
-        .scaleExtent([0, 20])
-        .on("zoom", cluster_zoomed);*/
     cluster_svg = d3.select("#analysis_cluster_embedding_svg")       //create svg
         .append('svg')
         .attr('id', 'cluster_svg')
         .attr('width', analysis_svgsize*1.1)
         .attr('height', analysis_svgsize*1.1)
         .append("g")
-        //.call(cluster_zoom)
-        //.append("g")
         .attr('transform', 'translate(' + 0.1*analysis_svgsize + ','+ 0.05*analysis_svgsize + ')');
     cluster_svg.append('rect')
         .attr("width", analysis_svgsize)
@@ -1178,8 +1154,8 @@ var corr_matrix_svg = d3.select("#analysis_corr_matrix_svg")
     cluster_source = '<?xml version="1.0" standalone="no"?>\r\n' + cluster_source;
     var cluster_url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(cluster_source);
     var cluster_canvas = document.createElement("canvas");
-    cluster_canvas.width = analysis_svgsize;
-    cluster_canvas.height = analysis_svgsize;
+    cluster_canvas.width = analysis_svgsize*1.1;
+    cluster_canvas.height = analysis_svgsize*1.1;
     var cluster_context = cluster_canvas.getContext("2d");
     var cluster_image = new Image;
     cluster_image.src = cluster_url;
@@ -1188,9 +1164,221 @@ var corr_matrix_svg = d3.select("#analysis_corr_matrix_svg")
         cluster_svg_url = cluster_canvas.toDataURL("image/png");
     };
 
-    /*function cluster_zoomed() {
-        cluster_svg.attr("transform", "translate(" + cluster_zoom.translate() + ")" + "scale(" + cluster_zoom.scale() + ")");
-    }*/
+    window.onload = function() {
+                var width = 600, height = 300;
+                // 模拟数据
+                var data = {
+                    fieldNames: feature_list,
+                    values: users_image
+                };
+                // 设定一些方便计算的常量
+                var radius = 100,
+                // 指标的个数，即fieldNames的长度
+                        total = feature_list.length,
+                // 需要将网轴分成几级，即网轴上从小到大有多少个正多边形
+                        level = 5,
+                // 网轴的范围，类似坐标轴
+
+                        rangeMin = 0,
+                        rangeMax = 100,
+                        arc = 2 * Math.PI;
+                range_upper = [];
+                range_lower = [];
+                for(i = 0; i < total; i++){
+                    var min = users_image[0][i];
+                    var max = users_image[0][i];
+                    for(j = 1; j < clusters; j++){
+                        if(users_image[j][i] < min){
+                            min = users_image[j][i];
+                            console.log(j)
+                        }
+                        if(users_image[j][i] > max){
+                            max = users_image[j][i];
+
+                        }
+                    }
+                    range_lower.push(min);
+                    range_upper.push(2*max);
+        }
+                // 每项指标所在的角度
+                var onePiece = arc/total;
+                // 计算网轴的正多边形的坐标
+                var polygons = {
+                    webs: [],
+                    webPoints: []
+                };
+                for(var k=level;k>0;k--) {
+                    var webs = '',
+                            webPoints = [];
+                    var r = radius/level * k;
+                    for(var i=0;i<total;i++) {
+                        var x = r * Math.sin(i * onePiece),
+                                y = r * Math.cos(i * onePiece);
+                        webs += x + ',' + y + ' ';
+                        webPoints.push({
+                            x: x,
+                            y: y
+                        });
+                    }
+                    polygons.webs.push(webs);
+                    polygons.webPoints.push(webPoints);
+                }
+                // 计算雷达图表的坐标
+                var areasData = [];
+                var values = data.values;
+                for(var i=0;i<values.length;i++) {
+                    var value = values[i],
+                            area = '',
+                            points = [];
+                    for(var k=0;k<total;k++) {
+                        var r = radius * (value[k] - range_lower[k])/(range_upper[k] - range_lower[k]);
+                        var x = r * Math.sin(k * onePiece),
+                                y = r * Math.cos(k * onePiece);
+                        area += x + ',' + y + ' ';
+                        points.push({
+                            x: x,
+                            y: y
+                        })
+                    }
+                    areasData.push({
+                        polygon: area,
+                        points: points
+                    });
+                }
+                // 创建一个分组用来组合要画的图表元素
+
+                var main = d3.select('#analysis_user_image').append('svg')
+                    .attr('width', 500)
+                    .attr('height', 440)
+                    .append('g')
+                        .classed('main', true)
+                        .attr('transform', "translate(" + 500/2 + ',' + analysis_svgsize/2 + ')');
+                d3.select('#analysis_user_image svg').append('g')
+                    .attr('transform', 'translate(' + 0.1*analysis_svgsize + ','+ 0.05*analysis_svgsize + ')')
+                    .append('rect')
+        .attr("width", analysis_svgsize)
+        .attr("height", analysis_svgsize)
+        .attr('fill', 'none')
+        .attr('pointer-events', 'all')
+        .attr('stroke', 'black');
+                // 绘制网轴
+                var webs = main.append('g')
+                        .classed('webs', true);
+                webs.selectAll('polygon')
+                        .data(polygons.webs)
+                        .enter()
+                        .append('polygon')
+                        .attr('points', function(d) {
+                            return d;
+                        })
+                        .attr('fill', 'white')
+                        .attr('fill-opacity', 0.5)
+                        .attr('stroke', 'gray')
+                        .attr('stroke-dasharray', '10, 5');
+                // 添加纵轴
+                var lines = main.append('g')
+                        .classed('lines', true);
+                lines.selectAll('line')
+                        .data(polygons.webPoints[0])
+                        .enter()
+                        .append('line')
+                        .attr('x1', 0)
+                        .attr('y1', 0)
+                        .attr('x2', function(d) {
+                            return d.x;
+                        })
+                        .attr('y2', function(d) {
+                            return d.y;
+                        })
+                        .attr('fill', 'white')
+                        .attr('fill-opacity', 0.5)
+                        .attr('stroke', 'gray')
+
+                // 添加g分组包含所有雷达图区域
+                var areas = main.append('g')
+                        .classed('areas', true);
+                // 添加g分组用来包含一个雷达图区域下的多边形以及圆点
+                areas.selectAll('g')
+                        .data(areasData)
+                        .enter()
+                        .append('g')
+                        .attr('class',function(d, i) {
+                            return 'area' + (i+1);
+                        });
+                for(var i=0;i<areasData.length;i++) {
+                    // 依次循环每个雷达图区域
+                    var area = areas.select('.area' + (i+1)),
+                            areaData = areasData[i];
+                    // 绘制雷达图区域下的多边形
+                    area.append('polygon')
+                            .attr('points', areaData.polygon)
+                            .attr('stroke', function(d, index) {
+                                return colors[i];
+                            })
+                            .attr('fill', function(d, index) {
+                                return colors[i];
+                            })
+                            .attr('fill-opacity', 0.5);
+                    // 绘制雷达图区域下的点
+                    var circles = area.append('g')
+                            .classed('circles', true);
+                    circles.selectAll('circle')
+                            .data(areaData.points)
+                            .enter()
+                            .append('circle')
+                            .attr('cx', function(d) {
+                                return d.x;
+                            })
+                            .attr('cy', function(d) {
+                                return d.y;
+                            })
+                            .attr('r', 3)
+                            .attr('stroke', function(d, index) {
+                                return colors[i];
+                            })
+                        .attr('fill', function(d, index){
+                            return colors[i];
+                        });
+                }
+                // 计算文字标签坐标
+                var textPoints = [];
+                var textRadius = radius + 20;
+                for(var i=0;i<total;i++) {
+                    var x = textRadius * Math.sin(i * onePiece),
+                            y = textRadius * Math.cos(i * onePiece);
+                    textPoints.push({
+                        x: x,
+                        y: y
+                    });
+                }
+                // 绘制文字标签
+                var texts = main.append('g')
+                        .classed('texts', true);
+                texts.selectAll('text')
+                        .data(textPoints)
+                        .enter()
+                        .append('text')
+                        .attr('x', function(d) {
+                            return d.x;
+                        })
+                        .attr('y', function(d) {
+                            return d.y;
+                        })
+                        .text(function(d,i) {
+                            return data.fieldNames[i];
+                        });
+            };
+
+
+            function getColor(idx) {
+                var palette = [
+                    '#2ec7c9', '#b6a2de', '#5ab1ef', '#ffb980', '#d87a80',
+                    '#8d98b3', '#e5cf0d', '#97b552', '#95706d', '#dc69aa',
+                    '#07a2a4', '#9a7fd1', '#588dd5', '#f5994e', '#c05050',
+                    '#59678c', '#c9ab00', '#7eb00a', '#6f5553', '#c14089'
+                ]
+                return palette[idx % palette.length];
+            }
 </script>
 <!--anomaly-->
 <script>
@@ -1211,13 +1399,13 @@ var corr_matrix_svg = d3.select("#analysis_corr_matrix_svg")
         .scaleExtent([0, 20])
         .on("zoom", anomaly_zoomed);*/
     var anomaly_svg = d3.select("#analysis_anomaly_detection_svg").append("svg")
-        .attr("width", analysis_svgsize*1.1)
-        .attr("height", analysis_svgsize*1.1)
+        .attr("width", analysis_svgsize)
+        .attr("height", analysis_svgsize)
         .attr('id', 'anomaly_svg')
         .append('g')
         //.call(anomaly_zoom)
         //.append("g")
-        .attr('transform', 'translate(' + 0.1*analysis_svgsize + ','+ 0.05*analysis_svgsize + ')');
+        .attr('transform', 'translate(' + 0 + ','+ 0 + ')');
     anomaly_svg.append('rect')
         .classed("frame", true)
         .attr("width", analysis_svgsize)
@@ -1250,8 +1438,8 @@ var corr_matrix_svg = d3.select("#analysis_corr_matrix_svg")
     anomaly_source = '<?xml version="1.0" standalone="no"?>\r\n' + anomaly_source;
     var anomaly_url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(anomaly_source);
     var anomaly_canvas = document.createElement("canvas");
-    anomaly_canvas.width = analysis_svgsize;
-    anomaly_canvas.height = analysis_svgsize;
+    anomaly_canvas.width = analysis_svgsize*1.1;
+    anomaly_canvas.height = analysis_svgsize*1.1;
     var anomaly_context = anomaly_canvas.getContext("2d");
     var anomaly_image = new Image;
     anomaly_image.src = anomaly_url;
@@ -1284,8 +1472,8 @@ var corr_matrix_svg = d3.select("#analysis_corr_matrix_svg")
     regression_svg = d3.select("#analysis_regression_svg")       //create svg
         .append('svg')
         .attr('id', 'regression_svg')
-        .attr('width', analysis_svgsize*1.1)
-        .attr('height', analysis_svgsize*1.1)
+        .attr('width', analysis_svgsize)
+        .attr('height', analysis_svgsize)
         .append("g")
         //.call(regression_zoom)
         //.append("g");
@@ -1321,8 +1509,8 @@ var corr_matrix_svg = d3.select("#analysis_corr_matrix_svg")
     regression_source = '<?xml version="1.0" standalone="no"?>\r\n' + regression_source;
     var regression_url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(regression_source);
     var regression_canvas = document.createElement("canvas");
-    regression_canvas.width = analysis_svgsize;
-    regression_canvas.height = analysis_svgsize;
+    regression_canvas.width = analysis_svgsize*1.1;
+    regression_canvas.height = analysis_svgsize*1.1;
     var regression_context = regression_canvas.getContext("2d");
     var regression_image = new Image;
     regression_image.src = regression_url;
@@ -1395,7 +1583,7 @@ var corr_matrix_svg = d3.select("#analysis_corr_matrix_svg")
             statistics: "2. Statistics Analysis",
             statistics_content: statistics_strings,
             attributes: "3. Attributes Analysis(Correlation Plot, Causality)",
-            //attributions_img: attributions_svg_url,
+            attributions_img: attributions_svg_url,
             attributes_content: attributes_string,
             cluster: "4. Cluster Analysis (k-means by default)",
             cluster_img: cluster_svg_url,
@@ -1433,7 +1621,9 @@ var corr_matrix_svg = d3.select("#analysis_corr_matrix_svg")
         <para>
             <text class="report_content" fontName="Calibri" fontSize="20"><%=attributes%></text>
         </para>
-
+        <para>
+            <img src="<%=attributions_img%>" sizeType="autosize"/>
+        </para>
         <para>
             <text class="report_content" fontName="Calibri" fontSize="14"><%=attributes_content%></text>
         </para>
