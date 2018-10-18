@@ -9,7 +9,6 @@
         }
         var fReader = new FileReader();
         fReader.readAsDataURL($(this)[0].files[0]);
-        console.log($(this)[0].files[0]);
         $fileDOM = $(this);
         fReader.onload = function (evt) {
             var data = evt.target.result;
