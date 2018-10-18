@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 
-<title>DataWorkshop</title>
+<title>DaGoo</title>
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta name="description" content="">
@@ -38,7 +38,7 @@
             <ul class="nav navbar-nav navbar-center">
                 {#<li><a href="/data_workshop"  class="smoothScroll">Home</a></li>#}
                {# <li><a href="#clean" onclick="showAtRight('/clean_table','#clean_table')" class="smoothScroll">Clean</a></li>#}
-                <li><a  onclick="return_data()" class="smoothScroll">Finish</a></li>
+                <li><a id="aa" onclick="return_data()" class="smoothScroll">Finish</a></li>
             </ul>
         </div>
     </div>
@@ -49,17 +49,18 @@
  <div id="clean_table"></div>
     </div>
         </div>
-
+<style>#aa{
+  cursor:pointer;
+}</style>
 <!-- SCRIPTS -->
 <script src="../static/js/jquery.js"></script>
 <script src="../static/js/bootstrap.min.js"></script>
 <script src="../static/js/jquery.parallax.js"></script>
-<script src="../static/js/owl.carousel.min.js"></script>
 <script src="../static/js/modernizr.custom.js"></script>
 <script src="../static/js/smoothscroll.js"></script>
 <script src="../static/js/custom.js"></script>
 
-<script type="text/javascript" src="http://cdn.bootcss.com/jquery/1.12.4/jquery.min.js"></script>
+<script type="text/javascript" src="../static/js/jquery-1.9.0.min.js"></script>
 <script>
 showAtRight('/clean_table','#clean_table');
 function showAtRight(url, id){

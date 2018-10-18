@@ -56,6 +56,26 @@ $.fn.csv2arr = function (callback) {
                         }
                     });
                 }
+                else if ($('input[name=select]:checked').val() == 'Text') {
+                    console.log("成功进入text");
+                    $.ajax({
+                        url: '/text_upload',
+                        type: 'POST',
+                        data: {json_data: JSON.stringify(res)},
+                        success: function (res) {
+                            if (res) {
+                                alert('success !');
+                                window.location.href = '/text_home';
+                            }
+                            else {
+                                alert('Unknown error.');
+                            }
+                        },
+                        error: function () {
+                            alert('Internet error');
+                        }
+                    });
+                }
                 if (res[res.length - 1] == "") {
                     res.pop();
                 }
@@ -78,8 +98,29 @@ $.fn.csv2arr = function (callback) {
         return encoding;
     }
 };
-
 function read_file() {
-    $("input[name=csvfile]").csv2arr(function (res) {
-    });
+        var file_name=$("input[name=csvfile]").val();
+    if (file_name.lastIndexOf(".")!=-1){
+var fileType = (file_name.substring(file_name.lastIndexOf(".")+1,file_name.length)).toLowerCase();
+if(fileType=='csv')
+{
+        $("input[name=csvfile]").csv2arr(function (res) {
+        });
+    }
+    if((fileType=='jpg')||(fileType=='jpeg')||(fileType=='png')||(fileType=='pdf'))
+    {
+        var fd=new FormData();
+
+fd.append("file",document.getElementsByName('csvfile')[0].files[0]);//这是获取上传的文件
+
+    var xhr=new XMLHttpRequest();
+    xhr.open("POST","/OCR");//要传到后台方法的路径
+    xhr.addEventListener("load",uploadComplete,false);
+xhr.send(fd);
+    }
+    }
+    }
+
+    function uploadComplete(evt){//py文件上传成功
+alert(evt.target.responseText);
 }
