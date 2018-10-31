@@ -210,18 +210,23 @@ def user_login():
     session.clear()
     return render_template('login.html')
 
+@app.route('/master/',methods=['GET','POST'])
+def master():
+    return render_template('master.html')
 
-# 这个装饰器的作用是一个URL与视图的映射
-# 当URL的尾数是这个的时候，就会请求这个函数并且将结果返给浏览器
-@app.route('/login/pass/', methods=['POST'])
+
+# 验证密码
+@app.route('/login/pass/', methods=['GET','POST'])
 def login_pass():
     # 添加数据到session中
     data = request.get_json('data')
     email = data['email']
     pas = data['password']
-    theuser = user.query.filter_by(email=email, password=pas).first()
+    theuser = user.query.filter_by(email=email).first()
     if theuser is None:
         return "account not exist"
+    elif not theuser.check_password_hash(pas):
+        return "password not right"
     else:
         session.clear()
         session['email'] = email
@@ -229,7 +234,8 @@ def login_pass():
         login1 = login(email=email)
         db.session.add(login1)
         db.session.commit()
-        return render_template("datagoo_homepage.html")
+        print(theuser)
+        return render_template("datagoo_homepage.html", user=theuser)
 
 
 @app.route('/login/pass/name/', methods=['GET', 'POST'])
@@ -470,8 +476,23 @@ def admin_id(id):
     return render_template('admin/' + id + '.html')
 
 
-@app.route('/geo/', methods=['GET', 'POST'])
-def geo():
+# 地图方法begin
+# 进入地图的index界面
+@app.route('/geo/index/', methods=['GET', 'POST'])
+def geo_index():
+    if session.get('email'):
+        email = session.get('email')
+        user1 = user.query.filter_by(email=email).first()
+        if user1 is None:
+            return "false"
+        return render_template('geo_Index.html',user=user1)
+    else:
+        return render_template('geo_Index.html')
+
+
+# 行政热力图
+@app.route('/geo/admin/', methods=['GET', 'POST'])
+def geo_admin():
     global final_data_object
     if 'province' in final_data_object.keys():
         if session.get('email'):
@@ -479,13 +500,10 @@ def geo():
             user1 = user.query.filter_by(email=email).first()
             if user1 is None:
                 return "false"
-            return render_template('geography.html', user=user1, attr=final_data_object['attr'])
+            return render_template('geo_admin.html', user=user1, attr=final_data_object['attr'])
         else:
-            print('data:',final_data_object['data'])
-            print("province",final_data_object['province'])
-            print("attr:",final_data_object['attr'])
-            return render_template('geography.html',attr=final_data_object['attr'])
-    else:
+            return render_template('geo_admin.html', attr=final_data_object['attr'])
+    else:  # 读取默认的数据
         final_data = csv.reader(open('./static/user/service/olddata/dist_code.csv'))
         province = []
         data = []
@@ -505,30 +523,14 @@ def geo():
             user1 = user.query.filter_by(email=email).first()
             if user1 is None:
                 return "false"
-            return render_template('geography.html', user=user1, attr=final_data_object['attr'])
+            return render_template('geo_admin.html', user=user1, attr=final_data_object['attr'])
         else:
-            return render_template('geography.html', attr=final_data_object['attr'])
+            return render_template('geo_admin.html', attr=final_data_object['attr'])
 
 
-@app.route('/geo/get/',methods=['GET','POST'])
-def geo_get():
-    return jsonify(final_data_object)
-
-
-@app.route('/geo/point/',methods=['GET','POST'])
-def geo_point():
-    if session.get('email'):
-        email = session.get('email')
-        user1 = user.query.filter_by(email=email).first()
-        if user1 is None:
-            return "false"
-        return render_template('geo2.html', user=user1)
-    else:
-        return render_template('geo2.html')
-
-
-@app.route('/index/geography/', methods=['GET', 'POST'])
-def index_geography():
+# 读取用户上传的行政区数据
+@app.route('/geo/admin/upload/', methods=['GET', 'POST'])
+def geo_admin_upload():
     global final_data_object
     if request.method == 'POST':
         json_data = request.form.get('json_data')
@@ -549,6 +551,72 @@ def index_geography():
         return "true"
     else:
         return "false"
+
+
+#海量点分布
+@app.route('/geo/points/', methods=['GET', 'POST'])
+def geo_points():
+    global final_data_object
+    if 'points' in final_data_object.keys():
+        if session.get('email'):
+            email = session.get('email')
+            user1 = user.query.filter_by(email=email).first()
+            if user1 is None:
+                return "false"
+            return render_template('geo_points.html', user=user1)
+        else:
+            return render_template('geo_points.html')
+    else:  # 读取默认的数据
+        final_data = csv.reader(open('./static/user/service/olddata/geo_points.csv'))
+        point=[]
+        for i in final_data:
+            dic=dict(zip(['longitude','latitude','value','name'],i))
+            point.append(dic)
+        final_data_object = {}
+        final_data_object['points']=point
+        if session.get('email'):
+            email = session.get('email')
+            user1 = user.query.filter_by(email=email).first()
+            if user1 is None:
+                return "false"
+            return render_template('geo_points.html', user=user1)
+        else:
+            return render_template('geo_points.html')
+
+
+#读取用户上传的点数据
+@app.route('/geo/points/upload/',methods=['GET','POST'])
+def geo_points_upload():
+    global final_data_object
+    if request.method == 'POST':
+        json_data = request.form.get('json_data')
+        temp = json.loads(json_data)
+        final_data = temp
+        point=[]
+        for i in final_data:
+            dic=dict(zip(['longitude','latitude','value','name'],i))
+            point.append(dic)
+        final_data_object={}
+        final_data_object['points']=point
+        return 'true'
+    else:
+        return 'false'
+
+
+# 向前端传递后台的地理信息数据
+@app.route('/geo/get/', methods=['GET', 'POST'])
+def geo_get():
+    return jsonify(final_data_object)
+
+
+
+
+@app.route('/geo/line/', methods=['GET', 'POST'])
+def geo_line():
+    return "true"
+
+
+# 地图方法end
 
 
 @app.route('/text_upload', methods=['GET', 'POST'])
@@ -875,7 +943,7 @@ def User_code():
     if request.method == 'POST':
         f = request.files['file']
         #basepath = os.path.dirname(__file__) + '\\static\\user\\' + session.get('email') + "\\user_code"  # 文件所要放入的路径
-        basepath = os.path.join(os.path.dirname(__file__), 'static', 'user', '1361377791@qq.com', 'user_code')# upload_path = os.path.join(basepath, '', secure_filename('User_cluster.zip'))
+        basepath = os.path.join('/home/ubuntu/dagoo', 'static', 'user', '1361377791@qq.com', 'user_code')# upload_path = os.path.join(basepath, '', secure_filename('User_cluster.zip'))
         if (request.form.get('label') == 'zip'):
             filename = os.path.join(basepath,'User_embedding.zip')  # 要解压的文件
             filedir = basepath  # 解压后放入的目录
@@ -909,7 +977,7 @@ def User_method():
     #run user's embedding way
     current_path = os.getcwd()
     # os.chdir(os.path.dirname(__file__)+'\\static\\user\\'+session.get('email')+"\\user_code")  # 切换成用户代码的路径
-    target_url = os.path.join(os.path.dirname(__file__), 'static', 'user', '1361377791@qq.com', 'user_code')
+    target_url = os.path.join('/home/ubuntu/dagoo', 'static', 'user', '1361377791@qq.com', 'user_code')
     os.chdir(target_url)
     draw_id = str(request.get_json()['draw_id'])
     if os.path.exists(os.path.join(target_url, 'User_embedding.py')):
@@ -958,7 +1026,7 @@ def cluster_code():
         #1361377791@qq.com
         #basepath = os.path.dirname(__file__)+'\\static\\user\\'+session.get('email')+"\\user_code"
         #  文件所要放入的路径
-        basepath = os.path.join(os.path.dirname(__file__),'static','user','1361377791@qq.com','user_code') #+ '\\static\\user\\1361377791@qq.com\\user_code'  # 文件所要放入的路径
+        basepath = os.path.join("/home/ubuntu/dagoo",'static','user','1361377791@qq.com','user_code') #+ '\\static\\user\\1361377791@qq.com\\user_code'  # 文件所要放入的路径
 
         #upload_path = os.path.join(basepath, '', secure_filename('User_cluster.zip'))
         if(request.form.get('label')=='zip'):
@@ -997,7 +1065,7 @@ def User_cluster():
     # 首先修改当前的工作路径，执行完程序后改回原来的工作路径
     current_path = os.getcwd()
     #os.chdir(os.path.dirname(__file__)+'\\static\\user\\'+session.get('email')+"\\user_code")  # 切换成用户代码的路径
-    target_url=os.path.join(os.path.dirname(__file__), 'static', 'user', '1361377791@qq.com', 'user_code')
+    target_url=os.path.join('/home/ubuntu/dagoo', 'static', 'user', '1361377791@qq.com', 'user_code')
     os.chdir(target_url)
     draw_id = str(request.get_json()['draw_id'])
     body = 'page-top' + draw_id
@@ -1149,6 +1217,7 @@ def graphgoo():
         graph_object['matrix'] = graph_matrix
         return jsonify(True)
     else:
+        graph_object = {}
         csv_reader = csv.reader(open('./examples/graph.csv'))
         graph_nodes = []
         graph_matrix = []
